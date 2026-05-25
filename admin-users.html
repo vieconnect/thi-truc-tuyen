@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Thí sinh | Admin Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f6f9; }
+        .table img { max-width: 100px; border-radius: 4px; }
+        .badge-status { font-size: 0.85rem; padding: 6px 10px; }
+        .video-container video { width: 100%; max-height: 260px; background: #000; border-radius: 8px; }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold text-danger" href="#">🛡️ VIECONNECT – Trang Quản Trị</a>
+    <div class="navbar-nav ms-auto">
+        <button class="btn btn-sm btn-outline-light" onclick="logout()">Đăng xuất <i class="bi bi-box-arrow-right"></i></button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid mt-4 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark m-0">Giám sát & Quản lý Thí sinh</h2>
+            <p class="text-muted mb-0">Dữ liệu đồng bộ Realtime trạng thái làm bài và chấm điểm</p>
+        </div>
+        <div class="bg-white px-4 py-2 rounded shadow-sm border text-center">
+            <span class="text-muted small d-block font-weight-bold">Tổng số thí sinh</span>
+            <strong id="totalUsersCount" class="fs-3 text-danger">0</strong>
+        </div>
+    </div>
+
+    <div class="card p-3 mb-4 shadow-sm border-0">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control border-start-0" placeholder="Tìm tên, email, số báo danh..." onkeyup="filterUserTable()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select id="statusFilter" class="form-select" onchange="filterUserTable()">
+                    <option value="all">-- Tất cả trạng thái --</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="locked">🔒 Đã bị khóa</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select id="examFilter" class="form-select" onchange="filterUserTable()">
+                    <option value="all">-- Trạng thái làm bài --</option>
+                    <option value="Chưa bắt đầu">Chưa bắt đầu</option>
+                    <option value="Đang làm bài">🟡 Đang làm bài</option>
+                    <option value="Đã nộp bài">🟢 Đã nộp bài</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 bg-white">
+                <thead class="table-dark">
+                    <tr>
+                        <th>SBD</th>
+                        <th>Họ và Tên</th>
+                        <th>Đơn vị / Lớp</th>
+                        <th>Trạng thái tài khoản</th>
+                        <th>Tiến độ thi hiện tại</th>
+                        <th class="text-center">Hành động chuyên sâu</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <div class="spinner-border text-danger spinner-border-sm me-2"></div> Đang tải dữ liệu thí sinh...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="lockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill"></i> Thiết lập lệnh Khóa Tài Khoản</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="lockTargetUsername">
+                <div class="row g-2 mb-3">
+                    <div class="col">
+                        <label class="small fw-bold">Họ tên thí sinh</label>
+                        <input type="text" id="lockTargetName" class="form-control form-control-sm" readonly>
+                    </div>
+                    <div class="col">
+                        <label class="small fw-bold">Số báo danh (SBD)</label>
+                        <input type="text" id="lockTargetSBD" class="form-control form-control-sm" readonly>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col">
+                        <label class="small fw-bold">Thời gian bắt đầu khóa</label>
+                        <input type="text" id="lockStartTime" class="form-control form-control-sm">
+                    </div>
+                    <div class="col">
+                        <label class="small fw-bold">Thời hạn khóa (Thời gian khóa)</label>
+                        <input type="text" id="lockDuration" class="form-control form-control-sm" placeholder="Ví dụ: 45 phút, Vĩnh viễn">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="small fw-bold">Lý do xử lý kỷ luật</label>
+                    <textarea id="lockReason" class="form-control form-control-sm" rows="3" placeholder="Nhập lý do vi phạm quy chế hoặc hành vi bất thường..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-sm btn-danger px-3" onclick="executeLockUser()">Xác nhận khóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-eye-fill"></i> Nhật ký & Trạng thái làm bài chi tiết</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="statusDetailsContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="publishModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-check-circle-fill"></i> Thẩm định & Công bố kết quả bài làm</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="publishTargetUsername">
+                
+                <div class="alert alert-info py-2 small">
+                    <i class="bi bi-info-circle"></i> <strong>Hệ thống tự động tính toán ban đầu:</strong> Điểm số máy chấm dựa theo cấu hình đáp án gốc. Quản trị viên có quyền xem lại bản ghi, cập nhật điểm thủ công hoặc thu hồi kết quả đã công bố.
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 border-end">
+                        <h6 class="fw-bold text-success mb-2">🎥 Video ghi màn hình bài làm</h6>
+                        <div class="video-container text-center p-2 bg-dark rounded">
+                            <video id="reviewScreenVideo" controls src=""></video>
+                            <p id="noVideoMsg" class="text-white-50 small my-5 d-none">Thí sinh chưa gửi hoặc không cho phép ghi màn hình.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-dark mb-3">Thông tin chấm điểm số</h6>
+                        <div class="mb-2">
+                            <label class="small text-muted fw-bold text-primary">Chọn mã bài thi cần công bố điểm</label>
+                            <select id="publishTargetExamSelect" class="form-select form-select-sm fw-bold border-primary text-primary" onchange="onExamDropdownChange()"></select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col">
+                                <label class="small text-muted">Điểm hệ thống tự tính</label>
+                                <input type="text" id="systemScore" class="form-control form-control-sm text-center fw-bold bg-light" readonly>
+                            </div>
+                            <div class="col">
+                                <label class="small text-success fw-bold">Điểm số công bố chính thức</label>
+                                <input type="number" id="finalScore" class="form-control form-control-sm text-center fw-bold border-success fs-5 text-success" step="0.1" min="0" max="10">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="small text-muted">Lời phê / Nhận xét của Admin</label>
+                            <textarea id="adminComment" class="form-control form-control-sm" rows="3" placeholder="Nhập nhận xét về bài làm..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="executeResetExamPublishStatus()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Xóa tiến trình (Thu hồi điểm)
+                </button>
+                <div>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-sm btn-success px-4 fw-bold" onclick="executePublishResult()">Phê duyệt & Công bố</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+let localUsersCache = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadRealtimeUsers();
+});
+
+function loadRealtimeUsers() {
+    database.ref('users').on('value', (snapshot) => {
+        const users = snapshot.val();
+        localUsersCache = users || {};
+        const tbody = document.getElementById('userTableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        let totalCount = 0;
+
+        if (!users || Object.keys(users).length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Hệ thống chưa ghi nhận tài khoản thí sinh nào.</td></tr>`;
+            document.getElementById('totalUsersCount').innerText = 0;
+            return;
+        }
+
+        // Tìm đoạn mã xử lý vòng lặp bên trong hàm loadRealtimeUsers() và thay thế:
+for (let username in users) {
+    const user = users[username];
+    if(user.role === 'admin') continue;
+
+    totalCount++;
+    const isLocked = user.isLocked || false;
+    
+    // Đọc trạng thái phòng thi realtime tổng quát của thí sinh
+    const currentExamStatus = user.examStatus || "Chưa bắt đầu";
+    
+    let statusBadge = `<span class="badge bg-success badge-status">✅ Hoạt động</span>`;
+    if (isLocked) {
+        statusBadge = `<span class="badge bg-danger badge-status">🔒 Bị khóa</span>`;
+    }
+
+    let examBadge = `<span class="badge bg-secondary">Chưa bắt đầu</span>`;
+    if (currentExamStatus === 'Đang làm bài') {
+        examBadge = `<span class="badge bg-warning text-dark animate-pulse">🟡 Đang làm bài</span>`;
+    } else if (currentExamStatus === 'Đã nộp bài') {
+        // Tìm xem thí sinh này đã nộp những bài thi (mã bài thi) nào cụ thể để hiển thị trực quan
+        let completedExamsList = [];
+        if (user.exams) {
+            Object.keys(user.exams).forEach(examId => {
+                if(user.exams[examId].status === "Đã hoàn thành") {
+                    completedExamsList.push(examId.toUpperCase());
+                }
+            });
+        }
+        const examNamesStr = completedExamsList.length > 0 ? ` (${completedExamsList.join(', ')})` : '';
+        examBadge = `<span class="badge bg-success">🟢 Đã nộp bài${examNamesStr}</span>`;
+    }
+
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-username', username);
+    tr.setAttribute('data-searchable', `${user.name} ${user.email} ${user.sbd}`.toLowerCase());
+    tr.setAttribute('data-status', isLocked ? 'locked' : 'active');
+    tr.setAttribute('data-exam', currentExamStatus);
+
+    tr.innerHTML = `
+        <td><span class="badge bg-dark px-2 py-1 fs-6">${user.sbd || '---'}</span></td>
+        <td>
+            <div class="fw-bold">${user.name || 'N/A'}</div>
+            <small class="text-muted">${user.email}</small>
+        </td>
+        <td><strong>${user.class || '---'}</strong></td>
+        <td>${statusBadge}</td>
+        <td>${examBadge}</td>
+        <td class="text-center">
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" onclick="openStatusModal('${username}')" title="Kiểm tra trạng thái bài làm">
+                    <i class="bi bi-eye"></i> Kiểm tra
+                </button>
+                <button class="btn btn-outline-success" onclick="openPublishModal('${username}')" title="Chấm điểm & Công bố kết quả">
+                    <i class="bi bi-check-circle"></i> Công bố
+                </button>
+                ${isLocked ? 
+                    `<button class="btn btn-success" onclick="unlockUser('${username}', '${user.name}')">Mở khóa</button>` : 
+                    `<button class="btn btn-danger" onclick="openLockModal('${username}', '${user.name}', '${user.sbd}')">Khóa</button>`
+                }
+            </div>
+        </td>
+    `;
+    tbody.appendChild(tr);
+}
+        document.getElementById('totalUsersCount').innerText = totalCount;
+        filterUserTable();
+    });
+}
+
+// ================= LOGIC XỬ LÝ: KHÓA TÀI KHOẢN =================
+function openLockModal(username, name, sbd) {
+    document.getElementById('lockTargetUsername').value = username;
+    document.getElementById('lockTargetName').value = name;
+    document.getElementById('lockTargetSBD').value = sbd;
+    document.getElementById('lockStartTime').value = new Date().toLocaleString('vi-VN');
+    document.getElementById('lockDuration').value = "Cho đến khi có phê duyệt mới từ Admin";
+    document.getElementById('lockReason').value = "";
+    new bootstrap.Modal(document.getElementById('lockModal')).show();
+}
+
+async function executeLockUser() {
+    const username = document.getElementById('lockTargetUsername').value;
+    const name = document.getElementById('lockTargetName').value;
+    const sbd = document.getElementById('lockTargetSBD').value;
+    const startTime = document.getElementById('lockStartTime').value;
+    const duration = document.getElementById('lockDuration').value;
+    const reason = document.getElementById('lockReason').value || "Vi phạm quy chế phòng thi";
+
+    const lockInfo = {
+        id: "LOCK-" + Math.floor(100 + Math.random() * 900),
+        name: name,
+        sbd: sbd,
+        reason: reason,
+        startTime: startTime,
+        duration: duration
+    };
+
+    try {
+        await database.ref(`users/${username}/isLocked`).set(true);
+        await database.ref(`users/${username}/lockInfo`).set(lockInfo);
+        bootstrap.Modal.getInstance(document.getElementById('lockModal')).hide();
+        alert(`Đã khóa thành công tài khoản thí sinh [${name}]`);
+    } catch (error) {
+        alert("Lỗi: " + error.message);
+    }
+}
+
+async function unlockUser(username, fullName) {
+    if (confirm(`Bạn chắc chắn muốn mở khóa lại cho tài khoản [${fullName}]?`)) {
+        try {
+            await database.ref(`users/${username}/isLocked`).set(false);
+            await database.ref(`users/${username}/lockInfo`).remove();
+            alert("Đã mở khóa tài khoản thành công!");
+        } catch (error) {
+            alert("Lỗi: " + error.message);
+        }
+    }
+}
+
+// ================= LOGIC XỬ LÝ: KIỂM TRA TRẠNG THÁI CHI TIẾT =================
+function openStatusModal(username) {
+    const user = localUsersCache[username];
+    const container = document.getElementById('statusDetailsContent');
+    
+    let examsHtml = `<p class="text-muted">Chưa thực hiện bài thi nào trong hệ thống.</p>`;
+    
+    if (user.exams && Object.keys(user.exams).length > 0) {
+        examsHtml = `<div class="list-group">`;
+        for (let examId in user.exams) {
+            const exam = user.exams[examId];
+            examsHtml += `
+                <div class="list-group-item list-group-item-action mb-2 border rounded">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1 fw-bold text-primary">${examId.toUpperCase()}</h6>
+                        <small class="text-muted">Nộp lúc: ${exam.submitTime || 'Chưa nộp'}</small>
+                    </div>
+                    <p class="mb-1 small">Điểm máy tự chấm ban đầu: <strong class="text-danger">${exam.autoScore ?? 'Chưa tính'}</strong></p>
+                    <div class="bg-light p-2 rounded small text-dark mt-2">
+                        <strong>Đáp án đã chọn của thí sinh:</strong><br>
+                        ${JSON.stringify(exam.selectedAnswers || 'Không có dữ liệu lưu trữ')}
+                    </div>
+                </div>`;
+        }
+        examsHtml += `</div>`;
+    }
+
+    container.innerHTML = `
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <p class="mb-1"><strong>Họ và Tên:</strong> ${user.name}</p>
+                <p class="mb-1"><strong>Số Báo Danh:</strong> ${user.sbd}</p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-1"><strong>Email:</strong> ${user.email}</p>
+                <p class="mb-1"><strong>Trạng thái thao tác:</strong> <span class="badge bg-info">${user.examStatus || 'Chưa rõ'}</span></p>
+            </div>
+        </div>
+        <hr>
+        <h6 class="fw-bold text-dark"><i class="bi bi-journal-text"></i> Nhật ký chi tiết câu trả lời:</h6>
+        ${examsHtml}
+    `;
+    
+    new bootstrap.Modal(document.getElementById('statusModal')).show();
+}
+
+// ================= LOGIC XỬ LÝ: CÔNG BỐ KẾT QUẢ & DROPDOWN BIẾN ĐỘNG =================
+function openPublishModal(username) {
+    const user = localUsersCache[username];
+    if (!user.exams || Object.keys(user.exams).length === 0) {
+        alert("Thí sinh này chưa nộp dữ liệu bài làm nào để thẩm định chấm điểm!");
+        return;
+    }
+
+    document.getElementById('publishTargetUsername').value = username;
+
+    const dropdown = document.getElementById('publishTargetExamSelect');
+    dropdown.innerHTML = ''; 
+
+    const examIds = Object.keys(user.exams);
+    examIds.forEach(id => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.innerText = id.toUpperCase();
+        dropdown.appendChild(option);
+    });
+
+    dropdown.selectedIndex = 0;
+    loadExamDetailsToPublishModal(username, examIds[0]);
+
+    new bootstrap.Modal(document.getElementById('publishModal')).show();
+}
+
+function loadExamDetailsToPublishModal(username, examId) {
+    const user = localUsersCache[username];
+    const examData = user.exams[examId];
+
+    if (!examData) return;
+
+    document.getElementById('systemScore').value = examData.autoScore ?? "0";
+    document.getElementById('finalScore').value = examData.finalScore ?? examData.autoScore ?? "0";
+    document.getElementById('adminComment').value = examData.adminComment || "";
+
+    const videoEl = document.getElementById('reviewScreenVideo');
+    const noVidMsg = document.getElementById('noVideoMsg');
+
+    if (examData.screenRecordUrl) {
+        videoEl.src = examData.screenRecordUrl;
+        videoEl.classList.remove('d-none');
+        noVidMsg.classList.add('d-none');
+    } else {
+        videoEl.src = "";
+        videoEl.classList.add('d-none');
+        noVidMsg.classList.remove('d-none');
+    }
+}
+
+function onExamDropdownChange() {
+    const username = document.getElementById('publishTargetUsername').value;
+    const selectedExamId = document.getElementById('publishTargetExamSelect').value;
+    loadExamDetailsToPublishModal(username, selectedExamId);
+}
+
+async function executePublishResult() {
+    const username = document.getElementById('publishTargetUsername').value;
+    const examId = document.getElementById('publishTargetExamSelect').value;
+    const finalScore = parseFloat(document.getElementById('finalScore').value);
+    const adminComment = document.getElementById('adminComment').value;
+
+    if (!examId) return alert("Vui lòng chọn một bài thi hợp lệ!");
+    if (isNaN(finalScore) || finalScore < 0 || finalScore > 10) {
+        return alert("Vui lòng nhập điểm số hợp lệ từ 0 đến 10!");
+    }
+
+    try {
+        const updateData = {
+            [`users/${username}/exams/${examId}/finalScore`]: finalScore,
+            [`users/${username}/exams/${examId}/adminComment`]: adminComment,
+            [`users/${username}/exams/${examId}/isPublished`]: true 
+        };
+
+        await database.ref().update(updateData);
+        bootstrap.Modal.getInstance(document.getElementById('publishModal')).hide();
+        alert(`Đã công bố điểm số bài thi [${examId.toUpperCase()}] thành công!`);
+    } catch (error) {
+        alert("Lỗi cập nhật dữ liệu: " + error.message);
+    }
+}
+
+// ================= THÊM MỚI HÀM: THU HỒI ĐIỂM (XÓA TIẾN TRÌNH CÔNG BỐ) =================
+async function executeResetExamPublishStatus() {
+    const username = document.getElementById('publishTargetUsername').value;
+    const examId = document.getElementById('publishTargetExamSelect').value;
+    const user = localUsersCache[username];
+
+    if (!examId) return alert("Không tìm thấy mã bài thi để thu hồi!");
+
+    const userConfirm = confirm(`Bạn có chắc chắn muốn XÓA TIẾN TRÌNH công bố điểm bài thi [${examId.toUpperCase()}] của thí sinh [${user.name || 'N/A'}]?\n\nHệ thống sẽ chuyển trạng thái hiển thị của thí sinh về 'Chưa có kết quả (Chờ duyệt)'. Các dữ liệu làm bài và video của thí sinh sẽ được GIỮ NGUYÊN BẢO MẬT.`);
+    
+    if (!userConfirm) return;
+
+    try {
+        const resetData = {
+            [`users/${username}/exams/${examId}/isPublished`]: false // Thu hồi trạng thái công bố công khai
+        };
+
+        await database.ref().update(resetData);
+        bootstrap.Modal.getInstance(document.getElementById('publishModal')).hide();
+        alert(`Đã thu hồi điểm công bố của bài thi [${examId.toUpperCase()}] thành công! Phía thí sinh hiện tại sẽ hiển thị trạng thái 'Chưa có kết quả'.`);
+    } catch (error) {
+        alert("Lỗi khi thực hiện thu hồi điểm: " + error.message);
+    }
+}
+
+function filterUserTable() {
+    const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+    const statusVal = document.getElementById('statusFilter').value;
+    const examVal = document.getElementById('examFilter').value;
+    const rows = document.querySelectorAll('#userTableBody tr');
+
+    rows.forEach(row => {
+        if(row.cells.length === 1) return;
+
+        const textMatch = row.getAttribute('data-searchable').includes(keyword);
+        const statusMatch = (statusVal === 'all') || (row.getAttribute('data-status') === statusVal);
+        const examMatch = (examVal === 'all') || (row.getAttribute('data-exam') === examVal);
+
+        if (textMatch && statusMatch && examMatch) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+
+<script>
+let localCameraStream = null;
+let localScreenStream = null;
+let faceDetectionInterval = null;
+let isModelsLoaded = false;
+
+// 1. Tải các model AI nhận diện khuôn mặt khi vừa vào trang
+async function loadFaceAIModels() {
+    const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+    await face-api.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await face-api.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    isModelsLoaded = true;
+    console.log("Hệ thống AI Giám sát đã sẵn sàng.");
+}
+loadFaceAIModels();
+
+// 2. Hàm kích hoạt bắt buộc chia sẻ Màn hình và Camera trước khi làm bài
+async function startAntiCheatMonitoring() {
+    try {
+        if (!isModelsLoaded) {
+            alert("Hệ thống AI đang khởi động, vui lòng đợi vài giây rồi ấn lại!");
+            return false;
+        }
+
+        // Yêu cầu quyền truy cập Camera
+        localCameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: 300, height: 300 } });
+        document.getElementById('monitorCameraVideo').srcObject = localCameraStream;
+
+        // Yêu cầu quyền chia sẻ Toàn màn hình (Screen Share)
+        localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+
+        // Lắng nghe nếu thí sinh cố tình tắt chia sẻ màn hình giữa chừng
+        localScreenStream.getVideoTracks()[0].onended = () => {
+            handleViolation("Tắt chia sẻ màn hình giám sát");
+            alert("Cảnh báo: Bạn đã ngắt chia sẻ màn hình! Vi phạm này đã được gửi tới hội đồng thi.");
+        };
+
+        // Kích hoạt các bộ cấu hình quét vi phạm
+        initVisibilityTracker();
+        startFaceDirectionTracker();
+
+        return true;
+    } catch (error) {
+        alert("BẮT BUỘC: Bạn phải cấp quyền truy cập Camera và Chia sẻ màn hình thì mới có thể tham gia bài thi này!");
+        console.error(error);
+        return false;
+    }
+}
+
+// 3. BẮT LỖI 1: Thí sinh chuyển Tab, mở cửa sổ khác (Mất tập trung khỏi phòng thi)
+function initVisibilityTracker() {
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            handleViolation("Rời khỏi tab làm bài (Mở cửa sổ khác / Thu nhỏ trình duyệt)");
+        }
+    });
+
+    window.addEventListener('blur', () => {
+        handleViolation("Click ra ngoài màn hình thi hoặc mở ứng dụng đè lên");
+    });
+}
+
+// 4. BẮT LỖI 2: Sử dụng AI phân tích Landmark xem thí sinh có nhìn thẳng vào camera không
+function startFaceDirectionTracker() {
+    const video = document.getElementById('monitorCameraVideo');
+    
+    faceDetectionInterval = setInterval(async () => {
+        if (!video.srcObject) return;
+
+        const detection = await face-api.detectSingleFace(video, new face-api.TinyFaceDetectorOptions()).withFaceLandmarks();
+        
+        if (!detection) {
+            handleViolation("Không phát hiện khuôn mặt trong khung hình Camera");
+            return;
+        }
+
+        // Lấy tọa độ các điểm mốc trên khuôn mặt để tính toán góc quay của đầu
+        const landmarks = detection.landmarks;
+        const nose = landmarks.getNose();          // Mũi
+        const leftEye = landmarks.getLeftEye();    // Mắt trái
+        const rightEye = landmarks.getRightEye();  // Mắt phải
+
+        // Tính toán khoảng cách tương đối để xác định hướng mặt
+        const eyeDistance = Math.abs(rightEye[0].x - leftEye[0].x);
+        const noseToLeftEye = Math.abs(nose[0].x - leftEye[0].x);
+        const ratio = noseToLeftEye / eyeDistance;
+
+        // Nếu tỷ lệ lệch quá xa ngưỡng chuẩn (0.35 - 0.65) nghĩa là thí sinh đang quay ngoắt sang trái hoặc phải để nhìn tài liệu
+        if (ratio < 0.33 || ratio > 0.67) {
+            handleViolation("Quay mặt đi hướng khác (Nghi vấn nhìn tài liệu ngoại vi)");
+        }
+    }, 3000); // Tần suất quét ngầm: 3 giây một lần
+}
+
+// 5. XỬ LÝ KHI VI PHẠM: Chụp ảnh bằng chứng và đẩy trực tiếp vào mục Nhật ký Realtime
+async function handleViolation(reason) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) return;
+
+    const video = document.getElementById('monitorCameraVideo');
+    const canvas = document.getElementById('monitorCanvas');
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth || 300;
+    canvas.height = video.videoHeight || 300;
+    
+    let evidenceImgBase64 = "No-Image";
+    
+    // Thực hiện chụp lén ảnh webcam tức thời làm bằng chứng dạng chuỗi ảnh base64
+    if (video.srcObject) {
+        try {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            evidenceImgBase64 = canvas.toDataURL('image/jpeg', 0.6); // Nén chất lượng 60% để tối ưu dung lượng Firebase
+        } catch (e) {
+            console.error("Không thể chụp ảnh bằng chứng:", e);
+        }
+    }
+
+    const violationPayload = {
+        time: new Date().toLocaleString('vi-VN'),
+        reason: reason,
+        evidence: evidenceImgBase64
+    };
+
+    // Đẩy bản ghi vi phạm vào mảng nhật ký thi của thí sinh theo mã bài thi hiện tại
+    // Giả định bạn đang có biến lưu tên bài thi hiện tại là `activeExam.id` hoặc cấu trúc tương đương
+    const currentExamId = window.activeExamId || "exam_01"; 
+    
+    try {
+        await database.ref(`users/${currentUser.username}/exams/${currentExamId}/logs`).push(violationPayload);
+    } catch (err) {
+        console.error("Lỗi gửi nhật ký vi phạm:", err);
+    }
+}
+
+// 6. Dọn dẹp tài nguyên khi kết thúc bài thi hoặc nộp bài thành công
+function stopAntiCheatMonitoring() {
+    clearInterval(faceDetectionInterval);
+    if (localCameraStream) localCameraStream.getTracks().forEach(track => track.stop());
+    if (localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
+}
+</script>
+</body>
+</html>

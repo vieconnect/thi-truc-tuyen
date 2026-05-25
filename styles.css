@@ -1,0 +1,404 @@
+.news-item {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding: 15px;
+        }
+        .news-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            margin-right: 15px;
+            border-radius: 5px;
+        }
+        .news-content {
+            flex: 1;
+        }
+        .news-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            text-decoration: none;
+        }
+        .news-title:hover {
+          color: green; /* Đổi màu chữ thành đỏ khi di chuột vào */
+        }
+        .news-time {
+            font-size: 12px;
+            color: gray;
+        }
+
+        /* 1. Khung bao ngoài để kích hoạt tính năng cuộn */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto; /* Hiện thanh cuộn khi bảng rộng hơn khung */
+    -webkit-overflow-scrolling: touch; /* Vuốt mượt trên iPhone */
+    margin: 20px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+/* 2. Định dạng bảng */
+.fl-table {
+    width: 100%; /* Dàn hết hàng ngang trên màn hình lớn */
+    min-width: 900px; /* Ép bảng không được nhỏ hơn 900px để giữ trải nghiệm xem tốt trên mobile */
+    border-collapse: collapse;
+    font-family: sans-serif;
+    background-color: white;
+}
+
+.fl-table th, .fl-table td {
+    text-align: left;
+    padding: 15px;
+    border-bottom: 1px solid #f1f1f1;
+    /* Ngăn chữ bị xuống dòng làm xấu bảng */
+    white-space: nowrap; 
+}
+
+.fl-table thead th {
+    background-color: #4b49ac;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* 3. Hiệu ứng khi di chuột qua hàng */
+.fl-table tbody tr:hover {
+    background-color: #f8f9ff;
+}
+
+/* Tùy chỉnh thanh cuộn cho đẹp (Webkit Browsers) */
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+/* Badge trạng thái */
+.badge-success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+    #reviewExpired{
+    pointer-events: none; /* Không cho phép click */
+    opacity: 0.5;         /* Làm mờ nút */
+    cursor: not-allowed;
+    }
+
+    /* Trạng thái ẩn: thu nhỏ về 0 và mờ đi */
+.modal.fade .modal-dialog {
+    opacity: 0;
+    transform: scale(0);
+    /* Chuyển động mượt mà cho cả transform và opacity */
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s linear;
+}
+
+/* Trạng thái hiện: phóng lên kích thước thực */
+.modal.show .modal-dialog {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Tùy chỉnh tốc độ nền đen phía sau */
+.modal-backdrop.fade {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.modal-backdrop.show {
+    opacity: 0.5;
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: grayscale(0.5); /* Làm nút hơi xám đi */
+}
+
+			.form-center {
+    display: flex;
+    align-items: center; /* Căn giữa dọc */
+    justify-content: center; /* Căn giữa ngang */
+    min-height: 90vh; /* Chiều cao toàn màn hình */
+}
+       .custom-alert {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #fb923c;
+            color: #c2410c;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .alert-i-circle {
+            background: #f97316;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+            font-style: italic;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container-login100-form-btn {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.wrap-login100-form-btn {
+  width: 100%;
+  display: block;
+  position: relative;
+  z-index: 1;
+  border-radius: 25px;
+  overflow: hidden;
+  margin: 0 auto;
+
+  box-shadow: 0 5px 30px 0px rgba(3, 216, 222, 0.2);
+  -moz-box-shadow: 0 5px 30px 0px rgba(3, 216, 222, 0.2);
+  -webkit-box-shadow: 0 5px 30px 0px rgba(3, 216, 222, 0.2);
+  -o-box-shadow: 0 5px 30px 0px rgba(3, 216, 222, 0.2);
+  -ms-box-shadow: 0 5px 30px 0px rgba(3, 216, 222, 0.2);
+}
+
+.login100-form-bgbtn {
+  position: absolute;
+  z-index: -1;
+  width: 300%;
+  height: 100%;
+  background: #a64bf4;
+  background: -webkit-linear-gradient(right, #00dbde, #fc00ff, #00dbde, #fc00ff);
+  background: -o-linear-gradient(right, #00dbde, #fc00ff, #00dbde, #fc00ff);
+  background: -moz-linear-gradient(right, #00dbde, #fc00ff, #00dbde, #fc00ff);
+  background: linear-gradient(right, #00dbde, #fc00ff, #00dbde, #fc00ff);
+  top: 0;
+  left: -100%;
+
+  -webkit-transition: all 0.4s;
+  -o-transition: all 0.4s;
+  -moz-transition: all 0.4s;
+  transition: all 0.4s;
+}
+
+.login100-form-btn {
+  font-size: 16px;
+  color: #fff;
+  line-height: 1.2;
+  text-transform: uppercase;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -moz-box;
+  display: -ms-flexbox;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 20px;
+  width: 100%;
+  height: 50px;
+}
+
+.wrap-login100-form-btn:hover .login100-form-bgbtn {
+  left: 0;
+}
+button {
+	outline: none !important;
+	border: none;
+	background: transparent;
+}
+
+button:hover {
+	cursor: pointer;
+}
+
+			.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: transparent;
+    z-index: 9999;
+    display: none;
+    overflow: hidden;
+}
+
+.loading-bar {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #00dbde, #fc00ff);
+    position: absolute;
+    transform: translateX(-100%);
+    animation: loading-animation 1s infinite ease-in-out;
+}
+
+
+/* Hộp thông báo Đang tải ở góc trên bên phải */
+.loading-toast {
+    position: fixed;
+    top: 20px; /* Chuyển từ bottom thành top */
+    right: 20px;
+    background: rgba(33, 37, 41, 0.9); 
+    color: white;
+    padding: 10px 18px;
+    border-radius: 8px;
+    display: none; 
+    align-items: center;
+    gap: 12px;
+    z-index: 10000; /* Đảm bảo nằm trên các thành phần khác */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    font-size: 14px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.1);
+    animation: slideInRight 0.3s ease; /* Thêm hiệu ứng trượt vào cho đẹp */
+}
+
+/* Hiệu ứng trượt nhẹ từ phải sang */
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Các phần CSS khác (spinner, loading-bar, alert) giữ nguyên như cũ */
+
+/* Vòng xoay spinner */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top: 3px solid #00dbde;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes loading-animation {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(-30%); }
+    100% { transform: translateX(100%); }
+}
+/* Hiệu ứng thanh tiến trình chạy ngược cho Toast */
+@keyframes toastProgressAnim {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* Container chứa các Toast */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 11000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    overflow: hidden; /* Quan trọng để không hiện thanh cuộn khi toast trượt */
+}
+
+/* Cấu hình Toast mặc định (Trạng thái ẨN) */
+/* Trạng thái ẩn */
+/* 1. Trạng thái mặc định: LUÔN là trạng thái "ĐÃ ẨN" */
+.toast {
+    display: block !important; /* Giữ để trình duyệt tính toán animation */
+    opacity: 0;
+    transform: translateX(120%); /* Đẩy ra khỏi màn hình bên phải */
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.5s ease;
+    pointer-events: none; /* Không cho bấm khi đang ẩn */
+}
+
+/* 2. Trạng thái HIỆN: Khi Bootstrap thêm class .show */
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+/* 3. Trạng thái ĐANG ẨN (Quan trọng): 
+   Khi Bootstrap bắt đầu đóng toast, nó sẽ xóa .show. 
+   Lúc này class .toast (trạng thái 1) sẽ kích hoạt lại 
+   giúp nó trượt ngược về 120% thay vì biến mất ngay. */
+
+/* Trạng thái khi đang ẩn đi (Bootstrap thêm class .showing/.hiding) */
+.toast.showing {
+    visibility: visible;
+}
+
+/* Fix lỗi Icon bị bóp nhỏ và Text xuống dòng */
+.toast-body {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+}
+
+.toast-body svg {
+    flex-shrink: 0 !important; /* Ép icon giữ nguyên kích thước */
+    margin-right: 12px;
+}
+
+.toast-body span {
+    word-break: break-word; /* Tự xuống dòng nếu chữ quá dài */
+    line-height: 1.4;
+}
+
+/* Thanh tiến trình chạy ngược */
+.progress {
+    height: 3px !important;
+    background: rgba(255,255,255,0.2) !important;
+    border-radius: 0 0 12px 12px;
+}
+
+.progress-bar {
+    background-color: white !important;
+    animation: toastProgressAnim 4s linear forwards;
+}
+
+@keyframes toastProgressAnim {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* Fix lỗi icon bị nhỏ lại khi thông báo dài */
+.toast-body svg, 
+.alert-i-circle, 
+.bi-exclamation-triangle-fill {
+    flex-shrink: 0 !important;
+    min-width: 20px; /* Đảm bảo chiều rộng tối thiểu */
+}
+
+/* Đảm bảo chữ trong toast tự xuống dòng nếu quá dài */
+#toastMessage, .toast-body span {
+    word-break: break-word;
+    flex-grow: 1;
+}

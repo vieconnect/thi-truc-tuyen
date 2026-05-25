@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống thi trực tuyến</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Khung chứa camera giám sát bo góc nổi cố định ở góc dưới màn hình */
+        .exam-monitor-box {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 180px;
+            height: 135px;
+            background: #222;
+            border: 3px solid #dc3545; /* Viền đỏ cảnh báo giám sát */
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            z-index: 9999;
+            overflow: hidden;
+            display: none; /* Chỉ hiển thị khi bắt đầu làm bài thi */
+        }
+        .exam-monitor-box video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .monitor-badge {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 10px;
+            padding: 2px 6px;
+            background: rgba(220, 53, 69, 0.85);
+            color: white;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">VieConnect Exam Portal</a>
+    <div class="navbar-nav ms-auto">
+        <span class="nav-link text-white me-3" id="welcomeMessage"></span>
+        <a class="btn btn-sm btn-outline-light" href="dashboard.html">Về Dashboard</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card p-4 shadow-sm mb-4">
+                <h4 class="fw-bold text-primary mb-3">Danh sách Đề Thi công việc</h4>
+                <div id="examListContainer" class="list-group"></div>
+            </div>
+        </div>
+        
+        <div class="col-md-7">
+            <div id="quizWorkspace" class="card p-4 shadow-sm" style="display: none;">
+                <h4 id="workspaceTitle" class="fw-bold text-success mb-2">Tên bài thi</h4>
+                <p class="text-muted small">Thời gian: <span id="workspaceTime"></span> | Hạn chót: <span id="workspaceExpired"></span></p>
+                <hr>
+                <div id="questionsContainer">
+                    <div class="mb-4">
+                        <p class="fw-bold">Câu 1: Đâu là quy trình đúng khi tiếp nhận công việc mới?</p>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="q1" id="q1_a" value="A">
+                            <label class="form-check-label" for="q1_a">A. Làm ngay không cần lập kế hoạch</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="q1" id="q1_b" value="B">
+                            <label class="form-check-label" for="q1_b">B. Phân tích yêu cầu -> Lập kế hoạch -> Thực hiện -> Kiểm thử</label>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-success w-100" onclick="submitExam()">Nộp bài và lưu kết quả</button>
+            </div>
+            <div id="quizNotice" class="text-center p-5 text-muted border bg-white rounded">
+                <h5>Chọn một đề thi ở danh sách bên trái để bắt đầu làm bài.</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="exam-monitor-box" id="cameraMonitorBox">
+    <span class="monitor-badge">● AI LIVE</span>
+    <video id="monitorCameraVideo" autoplay muted playsinline></video>
+</div>
+<canvas id="monitorCanvas" style="display: none;"></canvas>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="auth.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<script>
+let localCameraStream = null;
+let localScreenStream = null;
+let faceDetectionInterval = null;
+let isModelsLoaded = false;
+let activeExam = null;
+
+const avaliableExams = [
+    { stt: 1, id: "exam_01", subject: "Đánh giá Năng lực Nghiệp vụ Chuyên môn", time: "15 phút", expired: "30-12-2026" },
+    { stt: 2, id: "exam_02", subject: "An toàn Thông tin số Nội bộ công ty", time: "10 phút", expired: "15-08-2026" }
+];
+const correctAnswers = { "q1": "B" };
+
+// 1. Tải các model AI nhận diện khuôn mặt khi vừa vào trang
+async function loadFaceAIModels() {
+    try {
+        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+        await face-api.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+        await face-api.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        isModelsLoaded = true;
+        console.log("Hệ thống AI Giám sát đã sẵn sàng.");
+    } catch (e) {
+        console.error("Lỗi tải thư viện AI khuôn mặt: ", e);
+    }
+}
+loadFaceAIModels();
+
+// 2. Hàm kích hoạt bắt buộc chia sẻ Màn hình và Camera trước khi làm bài
+async function startAntiCheatMonitoring() {
+    // Kiểm tra môi trường bảo mật bắt buộc của trình duyệt đối với WebRTC API
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        alert("LỖI BẢO MẬT: Trình duyệt chỉ cho phép chia sẻ màn hình/bật camera qua giao thức mã hóa bảo mật HTTPS hoặc môi trường Localhost.");
+        return false;
+    }
+
+    try {
+        if (!isModelsLoaded) {
+            alert("Hệ thống AI đang khởi động thiết bị phần cứng, vui lòng chờ 2-3 giây rồi ấn lại!");
+            return false;
+        }
+
+        // Yêu cầu quyền truy cập Camera thiết bị công việc
+        localCameraStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 320, height: 240, facingMode: "user" },
+            audio: false 
+        });
+        document.getElementById('monitorCameraVideo').srcObject = localCameraStream;
+
+        // Yêu cầu quyền chia sẻ Toàn màn hình (Screen Share)
+        localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+
+        // Lắng nghe nếu thí sinh cố tình tắt chia sẻ màn hình giữa chừng
+        localScreenStream.getVideoTracks()[0].onended = () => {
+            handleViolation("Tắt chia sẻ màn hình giám sát");
+            alert("Cảnh báo: Bạn đã ngắt chia sẻ màn hình! Vi phạm này đã được gửi tới hội đồng thi.");
+        };
+
+        // Kích hoạt hiển thị khung nhìn ở góc màn hình và bắt đầu quét
+        document.getElementById('cameraMonitorBox').style.display = 'block';
+        initVisibilityTracker();
+        startFaceDirectionTracker();
+
+        return true;
+    } catch (error) {
+        alert("BẮT BUỘC: Bạn phải đồng ý cấp quyền truy cập Camera và Chia sẻ màn hình thì hệ thống mới cho phép mở nội dung đề thi!");
+        console.error(error);
+        return false;
+    }
+}
+
+// 3. BẮT LỖI 1: Thí sinh chuyển Tab, mở cửa sổ khác (Mất tập trung khỏi phòng thi)
+function initVisibilityTracker() {
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            handleViolation("Rời khỏi tab làm bài (Mở cửa sổ khác / Thu nhỏ trình duyệt)");
+        }
+    });
+
+    window.addEventListener('blur', () => {
+        handleViolation("Click ra ngoài màn hình thi hoặc mở ứng dụng đè lên");
+    });
+}
+
+// 4. BẮT LỖI 2: Sử dụng AI phân tích mốc tọa độ nhìn thẳng camera
+function startFaceDirectionTracker() {
+    const video = document.getElementById('monitorCameraVideo');
+    
+    faceDetectionInterval = setInterval(async () => {
+        if (!video.srcObject) return;
+
+        const detection = await face-api.detectSingleFace(video, new face-api.TinyFaceDetectorOptions()).withFaceLandmarks();
+        
+        if (!detection) {
+            handleViolation("Không phát hiện khuôn mặt trong khung hình Camera");
+            return;
+        }
+
+        const landmarks = detection.landmarks;
+        const nose = landmarks.getNose();          
+        const leftEye = landmarks.getLeftEye();    
+        const rightEye = landmarks.getRightEye();  
+
+        const eyeDistance = Math.abs(rightEye[0].x - leftEye[0].x);
+        const noseToLeftEye = Math.abs(nose[0].x - leftEye[0].x);
+        const ratio = noseToLeftEye / eyeDistance;
+
+        if (ratio < 0.33 || ratio > 0.67) {
+            handleViolation("Quay mặt đi hướng khác (Nghi vấn nhìn tài liệu ngoại vi)");
+        }
+    }, 3000); 
+}
+
+// 5. XỬ LÝ KHI VI PHẠM: Chụp ảnh bằng chứng gửi lên Firebase Realtime
+async function handleViolation(reason) {
+    if (!activeExam) return;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) return;
+
+    const video = document.getElementById('monitorCameraVideo');
+    const canvas = document.getElementById('monitorCanvas');
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth || 320;
+    canvas.height = video.videoHeight || 240;
+    
+    let evidenceImgBase64 = "No-Image";
+    
+    if (video.srcObject) {
+        try {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            evidenceImgBase64 = canvas.toDataURL('image/jpeg', 0.5); // Nén 50% tối ưu dung lượng text lưu DB
+        } catch (e) {
+            console.error("Không thể chụp ảnh bằng chứng:", e);
+        }
+    }
+
+    const violationPayload = {
+        time: new Date().toLocaleString('vi-VN'),
+        reason: reason,
+        evidence: evidenceImgBase64
+    };
+
+    try {
+        // Đẩy thẳng vào nhánh logs của đúng tài khoản và đúng bài thi đang chạy
+        await database.ref(`users/${currentUser.username}/exams/${activeExam.id}/logs`).push(violationPayload);
+    } catch (err) {
+        console.error("Lỗi gửi nhật ký vi phạm:", err);
+    }
+}
+
+// 6. Dọn dẹp luồng thiết bị khi kết thúc
+function stopAntiCheatMonitoring() {
+    clearInterval(faceDetectionInterval);
+    if (localCameraStream) localCameraStream.getTracks().forEach(track => track.stop());
+    if (localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
+    document.getElementById('cameraMonitorBox').style.display = 'none';
+}
+
+// --- LOGIC ĐIỀU HƯỚNG VÀ XỬ LÝ ĐỀ THI ---
+document.addEventListener('DOMContentLoaded', () => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) {
+        window.location.replace('index.html');
+        return;
+    }
+    document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name}`;
+    renderAvailableExams();
+});
+
+async function renderAvailableExams() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const container = document.getElementById('examListContainer');
+    container.innerHTML = '';
+    
+    const snapshot = await database.ref(`users/${currentUser.username}/exams`).once('value');
+    const userExams = snapshot.val() || {};
+
+    avaliableExams.forEach(exam => {
+        const hasDone = userExams[exam.id] !== undefined && userExams[exam.id].submitTime !== undefined;
+        
+        const itemHtml = `
+            <div class="list-group-item list-group-item-action p-3">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <h6 class="mb-1 fw-bold text-dark">${exam.subject}</h6>
+                </div>
+                <p class="mb-1 text-muted small">Thời gian làm bài: ${exam.time}</p>
+                ${hasDone ? 
+                    `<span class="badge bg-danger mt-2 p-2 d-inline-block"><i class="bi bi-lock-fill"></i> Bạn đã hoàn thành bài thi này rồi!</span>` :
+                    `<button class="btn btn-sm btn-primary mt-2" onclick="startExam('${exam.id}')">Bắt đầu làm bài</button>`
+                }
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', itemHtml);
+    });
+}
+
+async function startExam(examId) {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    const snapshot = await database.ref(`users/${currentUser.username}/exams/${examId}`).once('value');
+    if (snapshot.exists() && snapshot.val().submitTime) {
+        alert("Hệ thống từ chối truy cập: Bạn đã hoàn thành bài thi này rồi!");
+        renderAvailableExams();
+        return;
+    }
+
+    activeExam = avaliableExams.find(e => e.id === examId);
+
+    // Bắt đầu gọi yêu cầu cấp quyền thiết bị (Pop-up hỏi duyệt quyền sẽ hiện ngay tại đây)
+    const monitoringActivated = await startAntiCheatMonitoring();
+    if (!monitoringActivated) return; // Nếu thí sinh từ chối cấp quyền, chặn đứng không cho hiển thị Workspace bài thi
+
+    try {
+        await database.ref('users/' + currentUser.username).update({ examStatus: "Đang làm bài" });
+        
+        document.getElementById('quizNotice').style.display = 'none';
+        document.getElementById('quizWorkspace').style.display = 'block';
+        document.getElementById('workspaceTitle').innerText = activeExam.subject;
+        document.getElementById('workspaceTime').innerText = activeExam.time;
+        document.getElementById('workspaceExpired').innerText = activeExam.expired;
+    } catch (error) {
+        alert("Không thể kết nối máy chủ phòng thi!");
+    }
+}
+
+async function submitExam() {
+    if (!activeExam) return;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const username = currentUser.username;
+    
+    let selectedAnswers = {};
+    document.querySelectorAll('#questionsContainer input[type="radio"]:checked').forEach(elem => {
+        selectedAnswers[elem.name] = elem.value;
+    });
+
+    let totalQuestions = Object.keys(correctAnswers).length;
+    let correctCount = 0;
+    for (let key in correctAnswers) {
+        if (selectedAnswers[key] === correctAnswers[key]) correctCount++;
+    }
+    let calculatedScore = (correctCount / totalQuestions) * 10;
+
+    const examPayload = {
+        submitTime: new Date().toLocaleString('vi-VN'),
+        autoScore: calculatedScore,
+        finalScore: calculatedScore,
+        selectedAnswers: selectedAnswers,
+        isPublished: false,
+        adminComment: "",
+        screenRecordUrl: ""
+    };
+
+    const newRecord = {
+        stt: activeExam.stt,
+        subject: activeExam.subject,
+        time: new Date().toLocaleDateString('vi-VN'),
+        expired: activeExam.expired,
+        status: "Đã hoàn thành",
+        examId: activeExam.id 
+    };
+
+    try {
+        // Tắt camera và màn hình giám sát để giải phóng tài nguyên phần cứng thiết bị
+        stopAntiCheatMonitoring();
+
+        await database.ref('users/' + username).update({ examStatus: "Đã nộp bài" });
+        // Đồng bộ ghi đè bổ sung Payload nộp bài vào đúng cấu trúc bài thi riêng của tài khoản
+        await database.ref(`users/${username}/exams/${activeExam.id}`).update(examPayload);
+
+        const histSnap = await database.ref('users/' + username + '/historyExams').once('value');
+        let currentHistory = histSnap.val() || [];
+        if (!Array.isArray(currentHistory)) currentHistory = Object.values(currentHistory);
+        
+        currentHistory.push(newRecord);
+        await database.ref('users/' + username + '/historyExams').set(currentHistory);
+        
+        alert("Nộp bài thi thành công! Kết quả và nhật ký AI camera đã được niêm phong gửi về Admin.");
+        window.location.replace('tien-do-cong-viec.html');
+    } catch (error) {
+        alert("Có lỗi xảy ra khi đóng gói nộp bài!");
+    }
+}
+</script>
+</body>
+</html>

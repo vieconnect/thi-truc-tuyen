@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông tin cá nhân</title>
+    <!-- THÊM LINK CSS CỦA BOOTSTRAP Ở ĐÂY -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script language="JavaScript">
+    window.onload = function() {
+        document.addEventListener("contextmenu", function(e) {
+            e.preventDefault();
+        }, false);
+        document.addEventListener("keydown", function(e) {
+            //document.onkeydown = function(e) {
+            // "I" key
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 73) {
+                disabledEvent(e);
+            }
+            // "J" key
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 74) {
+                disabledEvent(e);
+            }
+            // "S" key + macOS
+            if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
+                disabledEvent(e);
+            }
+            // "U" key
+            if (e.ctrlKey && e.keyCode == 85) {
+                disabledEvent(e);
+            }
+            // "F12" key
+            if (event.keyCode == 123) {
+                disabledEvent(e);
+            }
+        }, false);
+ 
+        function disabledEvent(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            } else if (window.event) {
+                window.event.cancelBubble = true;
+            }
+            e.preventDefault();
+            return false;
+        }
+    };
+</script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#"></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent1" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent1">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+                        <a class="nav-link" href="./dashboard.html">Thông tin cá nhân</a>
+                    </li>
+                    <li class="nav-item">
+    <a class="nav-link text-primary fw-bold" href="./thi-truc-tuyen.html">🎯 Vào Thi Trực Tuyến</a>
+</li>
+                        <li class="nav-item">
+                        <a class="nav-link" href="./tien-do-cong-viec.html">Tiến độ công việc</a>
+                    </li>
+      </ul>
+        
+                <span class="navbar-text me-3" id="welcomeMessage"></span>
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+  Đăng xuất
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="staticBackdropLabel">Đăng xuất</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Bạn có chắc chắn muốn đăng xuất?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Không</button>
+        <button type="button" class="btn btn-outline-danger" id="logoutButton">Đăng xuất</button>
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+</nav>
+    <div class="container mt-5">
+        <h1>Thông tin cá nhân</h1>
+        <hr>
+        <div class="card p-4">
+            <p><strong>Họ và tên:</strong> <span id="userNameDisplay"></span></p>
+            <p><strong>ID nhân viên:</strong> <span id="userSBDDisplay"></span></p>
+            <p><strong>Ngày sinh:</strong> <span id="userBirthdayDisplay"></span></p>
+            <p><strong>Chức vụ:</strong> <span id="userClassDisplay"></span></p>
+            <center style="color:red ;">(Nếu nhân viên phát hiện thông tin cá nhân bị sai, vui lòng liên hệ với Chủ tịch qua SĐT: 0988065911)</center>
+        </div>
+    </div>
+    
+    <script>
+       document.addEventListener('DOMContentLoaded', () => {
+    updateExamRoomUI(); 
+    loadRealtimeUserList(); // Chạy danh sách quản lý thành viên
+    document.getElementById('logoutButton').addEventListener('click', logout);
+});
+
+function updateExamRoomUI() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (currentUser) {
+        if(document.getElementById('userNameDisplay')) document.getElementById('userNameDisplay').textContent = currentUser.name;
+        if(document.getElementById('userSBDDisplay')) document.getElementById('userSBDDisplay').textContent = currentUser.sbd;
+        if(document.getElementById('userBirthdayDisplay')) document.getElementById('userBirthdayDisplay').textContent = currentUser.birthday;
+        if(document.getElementById('userClassDisplay')) document.getElementById('userClassDisplay').textContent = currentUser.class;
+        if(document.getElementById('welcomeMessage')) document.getElementById('welcomeMessage').textContent = `Xin chào, ${currentUser.name}!`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) {
+        window.location.replace('index.html');
+        return;
+    }
+    document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name}`;
+    renderAvailableExams();
+});
+
+
+// Lắng nghe Realtime toàn bộ danh sách users từ Firebase và sinh nút Khóa/Mở khóa
+function loadRealtimeUserList() {
+    database.ref('users').on('value', (snapshot) => {
+        const users = snapshot.val();
+        const tbody = document.getElementById('adminUserTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        for (let username in users) {
+            const user = users[username];
+            const isLocked = user.isLocked || false;
+            
+            const row = `
+                <tr>
+                    <td>${user.sbd || '---'}</td>
+                    <td><strong>${user.name || 'N/A'}</strong></td>
+                    <td>${user.email || username}</td>
+                    <td>${user.class || '---'}</td>
+                    <td>
+                        <span class="badge ${isLocked ? 'bg-danger' : 'bg-success'}">
+                            ${isLocked ? 'Bị khóa' : 'Đang hoạt động'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm ${isLocked ? 'btn-warning' : 'btn-outline-danger'}" 
+                                onclick="toggleLockUser('${username}', ${isLocked}, '${user.name}')">
+                            ${isLocked ? '🔓 Mở khóa' : '🔒 Khóa TK'}
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        }
+    });
+}
+
+// Hàm cập nhật trực tiếp thuộc tính isLocked lên Database Firebase
+async function toggleLockUser(username, currentStatus, fullName) {
+    const nextStatus = !currentStatus;
+    const confirmMsg = nextStatus ? `Bạn có chắc chắn muốn KHÓA tài khoản ${fullName}?` : `Mở khóa cho ${fullName}?`;
+    
+    if (confirm(confirmMsg)) {
+        const lockInfo = nextStatus ? {
+            id: "LOCK-" + Math.floor(100, Math.random()*900),
+            name: fullName,
+            reason: "Chủ tịch/Quản trị viên yêu cầu tạm khóa dữ liệu",
+            startTime: new Date().toLocaleString(),
+            duration: "Cho đến khi có thông báo mới"
+        } : null;
+
+        await database.ref('users/' + username + '/isLocked').set(nextStatus);
+        await database.ref('users/' + username + '/lockInfo').set(lockInfo);
+    }
+}
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<script src="auth.js"></script>
+</body>
+</html>

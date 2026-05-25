@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phòng thi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script language="JavaScript">
+    window.onload = function() {
+        document.addEventListener("contextmenu", function(e) {
+            e.preventDefault();
+        }, false);
+        document.addEventListener("keydown", function(e) {
+            // "I" key
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 73) {
+                disabledEvent(e);
+            }
+            // "J" key
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 74) {
+                disabledEvent(e);
+            }
+            // "S" key + macOS
+            if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
+                disabledEvent(e);
+            }
+            // "U" key
+            if (e.ctrlKey && e.keyCode == 85) {
+                disabledEvent(e);
+            }
+            // "F12" key
+            if (event.keyCode == 123) {
+                disabledEvent(e);
+            }
+        }, false);
+ 
+        function disabledEvent(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            } else if (window.event) {
+                window.event.cancelBubble = true;
+            }
+            e.preventDefault();
+            return false;
+        }
+    };
+    </script>
+</head>
+<body>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="auth.js"></script>
+
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#"></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent1" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent1">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+                <a class="nav-link" href="./dashboard.html">Thông tin cá nhân</a>
+            </li>
+            <li class="nav-item">
+    <a class="nav-link text-primary fw-bold" href="./thi-truc-tuyen.html">🎯 Vào Thi Trực Tuyến</a>
+</li>
+            <li class="nav-item">
+                <a class="nav-link" href="./tien-do-cong-viec.html">Tiến độ công việc</a>
+            </li>
+          </ul>
+            
+            <span class="navbar-text me-3" id="welcomeMessage"></span>
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+              Đăng xuất
+            </button>
+
+            <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Đăng xuất</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    Bạn có chắc chắn muốn đăng xuất?
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Không</button>
+                    <button type="button" class="btn btn-outline-danger" id="logoutButton">Đăng xuất</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1>Lịch sử thi</h1>
+        <hr>
+        <div class="card p-4">
+            <div class="table-wrapper">
+    <table class="fl-table">
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Tên đề thi công việc</th>
+                <th>Thời gian làm</th>
+                <th>Hạn chót</th>
+                <th>Trạng thái</th>
+                <th style="text-align: center;">Điểm số công bố</th>
+            </tr>
+        </thead>
+        <tbody id="contentTableBody">
+            </tbody>
+    </table>
+</div>
+            <div style="color: red;">* Nếu nhân viên không thấy đủ các thông tin, hãy kéo bảng sang trái màn hình</div>
+        </div>
+    </div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="auth.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) {
+        window.location.replace('index.html');
+        return;
+    }
+
+    // Định vị chính xác thẻ tbody theo cấu trúc lớp fl-table của bạn
+    const tableBody = document.getElementById('contentTableBody'); 
+    if(!tableBody) return;
+
+    tableBody.innerHTML = '<tr><td colspan="6" class="text-center" style="color: #666;"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang đồng bộ tiến độ hệ thống...</td></tr>';
+
+    try {
+        // 1. Tải mảng lịch sử nộp bài (historyExams)
+        const historySnap = await database.ref(`users/${currentUser.username}/historyExams`).once('value');
+        const historyExams = historySnap.val() || [];
+
+        // 2. Tải thông tin chấm điểm, trạng thái công bố chi tiết từ Admin (exams)
+        const scoreSnap = await database.ref(`users/${currentUser.username}/exams`).once('value');
+        const adminExamsData = scoreSnap.val() || {};
+
+        // Chuyển dữ liệu sang mảng để xử lý vòng lặp map/forEach
+        const records = Array.isArray(historyExams) ? historyExams : Object.values(historyExams);
+
+        if (records.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding: 20px;">Bạn chưa thực hiện công việc hoặc bài thi nào.</td></tr>';
+            return;
+        }
+
+        tableBody.innerHTML = '';
+        
+        records.forEach(record => {
+            // Xác định mã bài thi (examId) của dòng hiện tại (Ví dụ: exam_01, exam_02)
+            // Nếu cấu trúc payload cũ chưa có examId, hệ thống tự động suy luận thông minh qua thuộc tính STT
+            const examId = record.examId || (record.stt === 1 ? "exam_01" : "exam_02");
+            const liveExamDetails = adminExamsData[examId];
+            
+            let scoreDisplayHtml = "";
+            
+            if (liveExamDetails) {
+                if (liveExamDetails.isPublished === true) {
+                    // Admin đã ấn nút duyệt công bố kết quả
+                    scoreDisplayHtml = `<b style="color: #2e7d32; font-size: 1.1rem;">${liveExamDetails.finalScore}</b> <span style="font-size:0.8rem; color:#777;">/ 10</span>`;
+                } else {
+                    // Thí sinh đã nộp nhưng Admin chưa duyệt công bố điểm công khai
+                    scoreDisplayHtml = `<i style="color: #e65100; font-size: 0.85rem;">Chưa có kết quả (Chờ duyệt)</i>`;
+                }
+            } else {
+                // Phòng trường hợp thí sinh nộp bài dạng mock dữ liệu cũ không có chi tiết bài làm
+                scoreDisplayHtml = `<i style="color: #9e9e9e; font-size: 0.85rem;">Chưa có kết quả</i>`;
+            }
+
+            const rowHtml = `
+                <tr>
+                    <td>${record.stt || '-'}</td>
+                    <td style="font-weight: bold; text-align: left; padding-left: 15px;">${record.subject || 'N/A'}</td>
+                    <td>${record.time || '---'}</td>
+                    <td><span style="color: #c62828; font-size: 0.9rem;">${record.expired || '---'}</span></td>
+                    <td><span class="badge bg-success" style="padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; background-color: #2e7d32; color: #fff;">✓ ${record.status || 'Đã hoàn thành'}</span></td>
+                    <td style="text-align: center; font-weight: bold;">${scoreDisplayHtml}</td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', rowHtml);
+        });
+
+    } catch (error) {
+        console.error("Lỗi đồng bộ dữ liệu fl-table:", error);
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger" style="padding: 20px;">Lỗi tải dữ liệu tiến độ. Vui lòng làm mới trang!</td></tr>';
+    }
+});
+</script>
+
+    <script>
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    </script>
+
+    <script>
+        document.addEventListener('click', function (e) {
+          const btn = e.target.closest('[data-bs-target="#staticBackdrop"]');
+          if (btn) {
+            const modal = document.querySelector('#staticBackdrop');
+            const dialog = modal.querySelector('.modal-dialog');
+            const rect = btn.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            dialog.style.transformOrigin = `${x}px ${y}px`;
+          }
+        });
+
+        document.addEventListener('click', function (e) {
+          const btn = e.target.closest('[data-bs-target="#staticBackdrop1"]');
+          if (btn) {
+            const modal = document.querySelector('#staticBackdrop1');
+            const dialog = modal.querySelector('.modal-dialog');
+            const rect = btn.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            dialog.style.transformOrigin = `${x}px ${y}px`;
+          }
+        });
+    </script>
+</body>
+</html>
