@@ -80,18 +80,19 @@
     </div>
 </div>
 
-    <div class="modal fade" id="lockAccountModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+<div class="modal fade" id="lockAccountModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title fw-bold">⚠️ TÀI KHOẢN BỊ KHÓA</h5>
+                <h5 class="modal-title fw-bold">🛑 TÀI KHOẢN ĐANG BỊ KHÓA</h5>
             </div>
             <div class="modal-body p-4 text-center">
-                <p>Tài khoản của học viên <strong id=\"displayName\" class=\"text-primary\">---</strong> hiện đang bị đình chỉ hoặc tạm dừng truy cập.</p>
+                <p>Học viên: <strong id="displayName" class="text-primary">---</strong> hiện đang bị đình chỉ quyền truy cập.</p>
                 <div class="alert alert-secondary text-start mt-2">
-                    <strong>Lý do hệ thống:</strong> <span id=\"displayLockReason\" class=\"text-danger\">---</span>
+                    <div class="mb-1"><strong>Lý do:</strong> <span id="displayLockReason" class="text-danger">---</span></div>
+                    <small class="text-muted d-block" id="displayLockTime">Thời gian: ---</small>
                 </div>
-                <button type="button" class=\"btn btn-secondary mt-2 w-100\" data-bs-dismiss=\"modal\">Đóng</button>
+                <button type="button" class="btn btn-secondary mt-2 w-100" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
@@ -117,16 +118,6 @@ function handleRegister() {
 }
 function handleForgot() {
     resetPassword(document.getElementById('forgotEmail').value);
-}
-
-    function showLockModal(lockInfo) {
-    if (document.getElementById('lockAccountModal')) {
-        document.getElementById('displayName').innerText = lockInfo?.name || 'Tài khoản';
-        document.getElementById('displayLockReason').innerText = lockInfo?.reason || 'Vi phạm nội quy phòng thi';
-        new bootstrap.Modal(document.getElementById('lockAccountModal')).show();
-    } else {
-        alert(`Tài khoản hiện đang bị khóa!\nLý do: ${lockInfo?.reason || 'Chưa cập nhật'}`);
-    }
 }
 </script>
 </body>
