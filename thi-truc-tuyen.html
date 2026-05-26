@@ -38,6 +38,19 @@
             border-radius: 4px;
             font-weight: bold;
         }
+        .monitor-static-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffc107;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -56,9 +69,9 @@
     <div class="row">
         <div class="col-md-5">
             <div class="card p-4 shadow-sm mb-4">
-                <h4 class="fw-bold text-primary mb-3">Danh sách Đề Thi công việc</h4>
+                <h4 class="fw-bold text-primary mb-3">Danh sách Đề Thi được giao</h4>
                 <div id="examListContainer" class="list-group">
-                    <div class="text-center p-3 text-muted">Đang tải dữ liệu phòng thi...</div>
+                    <div class="text-center p-3 text-muted">Đang tìm kiếm bài thi được chỉ định...</div>
                 </div>
             </div>
         </div>
@@ -79,145 +92,23 @@
 </div>
 
 <div class="exam-monitor-box" id="cameraMonitorBox">
-    <span class="monitor-badge">● AI LIVE</span>
-    <video id="monitorCameraVideo" autoplay muted playsinline></video>
+    <span class="monitor-badge">● SCREEN LIVE</span>
+    <div class="monitor-static-placeholder bg-dark">
+        <span>Hệ thống đang<br>giám sát cửa sổ...</span>
+    </div>
+    <video id="monitorCameraVideo" autoplay muted playsinline style="display: none;"></video>
 </div>
 <canvas id="monitorCanvas" style="display: none;"></canvas>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="auth.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 
 <script>
-let localCameraStream = null;
-let localScreenStream = null;
-let faceDetectionInterval = null;
-let isModelsLoaded = false;
-let activeExam = null; // Sẽ lưu thông tin object đề thi hiện tại được tải từ RTDB
+let activeExam = null; 
+let isExamInProgress = false;
+let screenViolationCount = 0;
 
-// --- TẢI MODEL AI ---
-async function loadFaceAIModels() {
-    try {
-        const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
-        await face-api.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-        await face-api.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-        isModelsLoaded = true;
-        console.log("Hệ thống AI Giám sát đã sẵn sàng.");
-        renderAvailableExams(); 
-    } catch (e) {
-        console.error("Lỗi tải thư viện AI khuôn mặt: ", e);
-    }
-}
-loadFaceAIModels();
-
-// --- CƠ CHẾ GIÁM SÁT ANTI-CHEAT ---
-async function startAntiCheatMonitoring() {
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-        alert("LỖI BẢO MẬT: Trình duyệt chỉ cho phép giám sát qua HTTPS hoặc môi trường Localhost.");
-        return false;
-    }
-    try {
-        if (!isModelsLoaded) {
-            alert("Hệ thống AI đang khởi động thiết bị phần cứng, vui lòng chờ 2-3 giây rồi ấn lại!");
-            return false;
-        }
-        localCameraStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 320, height: 240, facingMode: "user" },
-            audio: false 
-        });
-        document.getElementById('monitorCameraVideo').srcObject = localCameraStream;
-        localScreenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-
-        localScreenStream.getVideoTracks()[0].onended = () => {
-            handleViolation("Tắt chia sẻ màn hình giám sát");
-            alert("Cảnh báo: Bạn đã ngắt chia sẻ màn hình! Vi phạm này đã được gửi tới hội đồng thi.");
-        };
-
-        document.getElementById('cameraMonitorBox').style.display = 'block';
-        initVisibilityTracker();
-        startFaceDirectionTracker();
-        return true;
-    } catch (error) {
-        alert("BẮT BUỘC: Bạn phải đồng ý cấp quyền truy cập Camera và Chia sẻ màn hình thì mới có thể mở nội dung đề thi!");
-        return false;
-    }
-}
-
-function initVisibilityTracker() {
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            handleViolation("Rời khỏi tab làm bài (Mở cửa sổ khác / Thu nhỏ trình duyệt)");
-        }
-    });
-    window.addEventListener('blur', () => {
-        handleViolation("Click ra ngoài màn hình thi hoặc mở ứng dụng đè lên");
-    });
-}
-
-function startFaceDirectionTracker() {
-    const video = document.getElementById('monitorCameraVideo');
-    faceDetectionInterval = setInterval(async () => {
-        if (!video.srcObject) return;
-        const detection = await face-api.detectSingleFace(video, new face-api.TinyFaceDetectorOptions()).withFaceLandmarks();
-        if (!detection) {
-            handleViolation("Không phát hiện khuôn mặt trong khung hình Camera");
-            return;
-        }
-        const landmarks = detection.landmarks;
-        const nose = landmarks.getNose();          
-        const leftEye = landmarks.getLeftEye();    
-        const rightEye = landmarks.getRightEye();  
-        const eyeDistance = Math.abs(rightEye[0].x - leftEye[0].x);
-        const noseToLeftEye = Math.abs(nose[0].x - leftEye[0].x);
-        const ratio = noseToLeftEye / eyeDistance;
-
-        if (ratio < 0.33 || ratio > 0.67) {
-            handleViolation("Quay mặt đi hướng khác (Nghi vấn nhìn tài liệu ngoại vi)");
-        }
-    }, 3000); 
-}
-
-async function handleViolation(reason) {
-    if (!activeExam) return;
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) return;
-
-    const video = document.getElementById('monitorCameraVideo');
-    const canvas = document.getElementById('monitorCanvas');
-    const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth || 320;
-    canvas.height = video.videoHeight || 240;
-    let evidenceImgBase64 = "No-Image";
-    
-    if (video.srcObject) {
-        try {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            evidenceImgBase64 = canvas.toDataURL('image/jpeg', 0.5);
-        } catch (e) {
-            console.error("Không thể chụp ảnh bằng chứng:", e);
-        }
-    }
-    const violationPayload = {
-        time: new Date().toLocaleString('vi-VN'),
-        reason: reason,
-        evidence: evidenceImgBase64
-    };
-    try {
-        await database.ref(`users/${currentUser.username}/exams/${activeExam.id}/logs`).push(violationPayload);
-    } catch (err) {
-        console.error("Lỗi gửi nhật ký vi phạm:", err);
-    }
-}
-
-function stopAntiCheatMonitoring() {
-    clearInterval(faceDetectionInterval);
-    if (localCameraStream) localCameraStream.getTracks().forEach(track => track.stop());
-    if (localScreenStream) localScreenStream.getTracks().forEach(track => track.stop());
-    document.getElementById('cameraMonitorBox').style.display = 'none';
-}
-
-// --- XỬ LÝ LIÊN KẾT REALTIME DATABASE ĐỘNG ---
 document.addEventListener('DOMContentLoaded', () => {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) {
@@ -225,76 +116,79 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name}`;
-    renderAvailableExams();
+    renderAssignedExams();
 });
 
-// 1. Lấy danh sách đề thi được gán riêng cho user này từ RTDB
-async function renderAvailableExams() {
+// 1. Quét danh sách mã ID bài thi từ mục assignedExams của tài khoản và lấy thông tin từ kho đề exams gốc
+async function renderAssignedExams() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const container = document.getElementById('examListContainer');
     container.innerHTML = '';
     
     try {
-        const snapshot = await database.ref(`users/${currentUser.username}/exams`).once('value');
-        const userExams = snapshot.val() || {};
-        const examIds = Object.keys(userExams);
+        // Đọc danh sách các ID bài thi được gán tại users/{username}/assignedExams
+        const assignedSnapshot = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
+        const assignedExams = assignedSnapshot.val() || {};
+        const examIds = Object.keys(assignedExams);
 
         if (examIds.length === 0) {
-            container.innerHTML = '<div class="text-center p-3 text-danger">Bạn hiện chưa được giao đề thi nào!</div>';
+            container.innerHTML = '<div class="text-center p-3 text-muted">Bạn chưa được phân phối hoặc giao bất kỳ ID bài thi nào!</div>';
             return;
         }
 
-        examIds.forEach(id => {
-            const exam = userExams[id];
-            // Kiểm tra trạng thái nộp bài dựa trên sự tồn tại của thuộc tính submitTime
-            const hasDone = exam.submitTime !== undefined;
-            
+        // Lặp qua từng ID bài thi để đối chiếu dữ liệu hiển thị từ kho đề gốc `exams/`
+        for (const examId of examIds) {
+            const userExamState = assignedExams[examId];
+            const hasDone = userExamState.status === "Đã hoàn thành" || userExamState.submitTime !== undefined;
+
+            // Truy vấn lấy thông tin tiêu đề từ nhánh gốc exams/{examId}
+            const globalExamSnapshot = await database.ref(`exams/${examId}`).once('value');
+            const globalExamData = globalExamSnapshot.val();
+
+            if (!globalExamData) continue; // Bỏ qua nếu ID bài thi nhập sai hoặc không tồn tại trong kho đề
+
             let btnHtml = '';
             if (hasDone) {
-                btnHtml = `<span class="badge bg-danger mt-2 p-2 d-inline-block"><i class="bi bi-lock-fill"></i> Bạn đã hoàn thành bài thi này!</span>`;
+                btnHtml = `<span class="badge bg-danger mt-2 p-2 d-inline-block"><i class="bi bi-lock-fill"></i> Đã hoàn thành</span>`;
             } else {
-                if (!isModelsLoaded) {
-                    btnHtml = `<button class="btn btn-sm btn-secondary mt-2" disabled><span class="spinner-border spinner-border-sm"></span> Cấu hình AI...</button>`;
-                } else {
-                    btnHtml = `<button class="btn btn-sm btn-primary mt-2" onclick="startExam('${id}')">Bắt đầu làm bài</button>`;
-                }
+                btnHtml = `<button class="btn btn-sm btn-primary mt-2" onclick="startExam('${examId}')">Bắt đầu làm bài</button>`;
             }
 
             const itemHtml = `
-                <div class="list-group-item list-group-item-action p-3">
+                <div class="list-group-item list-group-item-action p-3 mb-2 border rounded shadow-xs">
                     <div class="d-flex w-100 justify-content-between align-items-center">
-                        <h6 class="mb-1 fw-bold text-dark">${exam.subject || 'Đề thi không tên'}</h6>
+                        <h6 class="mb-1 fw-bold text-dark">${globalExamData.subject || 'Môn thi không tên'}</h6>
+                        <small class="badge bg-secondary text-light">${examId}</small>
                     </div>
-                    <p class="mb-1 text-muted small">Thời gian làm bài: ${exam.time || 'Không giới hạn'}</p>
+                    <p class="mb-1 text-muted small">Thời gian làm bài: ${globalExamData.time || 'Không giới hạn'}</p>
                     ${btnHtml}
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', itemHtml);
-        });
+        }
+        
+        if(container.innerHTML === '') {
+            container.innerHTML = '<div class="text-center p-3 text-danger">Không tìm thấy nội dung tương ứng với mã đề được giao!</div>';
+        }
     } catch (error) {
-        container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi nạp cổng đồng bộ dữ liệu thi!</div>';
+        container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi kết nối máy chủ dữ liệu!</div>';
     }
 }
 
-// 2. Mở không gian làm bài thi động
+// 2. Tải nội dung câu hỏi trực tiếp từ kho đề exams của hệ thống bằng ID
 async function startExam(examId) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     
     try {
-        const snapshot = await database.ref(`users/${currentUser.username}/exams/${examId}`).once('value');
-        const examData = snapshot.val();
+        // Đọc đề thi gốc trực tiếp từ kho đề dùng chung bằng mã examId
+        const examSnapshot = await database.ref(`exams/${examId}`).once('value');
+        const examData = examSnapshot.val();
 
         if (!examData) {
-            alert("Dữ liệu bài thi không tồn tại!");
-            return;
-        }
-        if (examData.submitTime) {
-            alert("Hệ thống từ chối: Bạn đã nộp bài thi này trước đó!");
-            renderAvailableExams();
+            alert("Mã đề thi này không tồn tại trên kho lưu trữ tổng!");
             return;
         }
 
-        // Đóng gói cấu trúc đề thi động được fetch trực tiếp
         activeExam = {
             id: examId,
             subject: examData.subject,
@@ -303,35 +197,93 @@ async function startExam(examId) {
             questions: examData.questions || {}
         };
 
-        // Kích hoạt WebRTC và AI nhận diện
-        const monitoringActivated = await startAntiCheatMonitoring();
-        if (!monitoringActivated) return;
+        screenViolationCount = 0;
 
-        // Cập nhật trạng thái tổng quát tài khoản trên RTDB
-        await database.ref('users/' + currentUser.username).update({ examStatus: "Đang làm bài" });
+        // Ghi nhận trạng thái đang thi của tài khoản
+        await database.ref('users/' + currentUser.username).update({ 
+            examStatus: "Đang làm bài",
+            screenViolations: 0
+        });
         
-        // Hiển thị giao diện bài thi
+        // Cập nhật trạng thái cụ thể của ID đề thi này trong mục assignedExams
+        await database.ref(`users/${currentUser.username}/assignedExams/${examId}`).update({
+            status: "Đang làm bài"
+        });
+        
+        await database.ref(`users/${currentUser.username}/violationLogs`).remove();
+
+        document.getElementById('cameraMonitorBox').style.display = 'block';
         document.getElementById('quizNotice').style.display = 'none';
         document.getElementById('quizWorkspace').style.display = 'block';
+        
         document.getElementById('workspaceTitle').innerText = activeExam.subject;
         document.getElementById('workspaceTime').innerText = activeExam.time;
-        document.getElementById('workspaceExpired').innerText = activeExam.expired;
+        document.getElementById('workspaceExpired').innerText = activeExam.expired || "Không giới hạn";
 
-        // Tiến hành render bảng câu hỏi động
         renderQuestions(activeExam.questions);
+        startScreenWindowTracker();
     } catch (error) {
-        alert("Lỗi kết nối máy chủ phòng thi: " + error.message);
+        alert("Lỗi tải thông tin phòng thi: " + error.message);
     }
 }
 
-// 3. Tự sinh giao diện HTML câu hỏi và các phương án trắc nghiệm
+// --- HỆ THỐNG GIÁM SÁT MÀN HÌNH CỬA SỔ ---
+function startScreenWindowTracker() {
+    isExamInProgress = true;
+    document.addEventListener('visibilitychange', handleVisibilityViolation);
+    window.addEventListener('blur', handleBlurViolation);
+}
+
+function stopScreenWindowTracker() {
+    isExamInProgress = false;
+    document.removeEventListener('visibilitychange', handleVisibilityViolation);
+    window.removeEventListener('blur', handleBlurViolation);
+    document.getElementById('cameraMonitorBox').style.display = 'none';
+}
+
+function handleVisibilityViolation() {
+    if (document.visibilityState === 'hidden' && isExamInProgress) {
+        processViolationCommit("Thí sinh rời khỏi tab làm bài (Mở cửa sổ khác / Thu nhỏ trình duyệt)");
+    }
+}
+
+function handleBlurViolation() {
+    if (isExamInProgress) {
+        processViolationCommit("Thí sinh click ra ngoài màn hình thi hoặc mở ứng dụng khác đè lên");
+    }
+}
+
+async function processViolationCommit(reason) {
+    if (!activeExam) return;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) return;
+
+    screenViolationCount++;
+
+    const violationPayload = {
+        time: new Date().toLocaleString('vi-VN'),
+        reason: reason
+    };
+
+    try {
+        await database.ref(`users/${currentUser.username}/screenViolations`).set(screenViolationCount);
+        await database.ref(`users/${currentUser.username}/violationLogs`).push({
+            violationIndex: screenViolationCount,
+            reason: reason,
+            time: violationPayload.time
+        });
+    } catch (err) {
+        console.error("Lỗi đồng bộ vi phạm:", err);
+    }
+}
+
 function renderQuestions(questions) {
     const container = document.getElementById('questionsContainer');
     container.innerHTML = '';
     
     const qIds = Object.keys(questions);
     if (qIds.length === 0) {
-        container.innerHTML = '<p class="text-danger">Đề thi này hiện tại chưa được cập nhật nội dung câu hỏi từ Admin!</p>';
+        container.innerHTML = '<p class="text-danger">Đề thi này chưa được thiết lập câu hỏi.</p>';
         return;
     }
 
@@ -364,65 +316,61 @@ function renderQuestions(questions) {
     });
 }
 
-// 4. Cơ chế nộp bài và đối chiếu đáp án bảo mật thông qua dữ liệu master gốc
+// 4. Cơ chế nộp bài và đồng bộ điểm số vào assignedExams
 async function submitExam() {
     if (!activeExam) return;
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const username = currentUser.username;
     
-    // Thu thập các đáp án học viên đã chọn trên UI
     let selectedAnswers = {};
     document.querySelectorAll('#questionsContainer input[type="radio"]:checked').forEach(elem => {
         selectedAnswers[elem.name] = elem.value;
     });
 
     try {
-        stopAntiCheatMonitoring(); // Tắt camera giải phóng tài nguyên phần cứng
+        stopScreenWindowTracker(); 
 
-        // BẢO MẬT: Đọc đáp án chính xác từ phân vùng master gốc bảo mật thay vì đọc trên Client
-        const masterSnapshot = await database.ref(`exams_master/${activeExam.id}/questions`).once('value');
-        const masterQuestions = masterSnapshot.val() || {};
-
-        let totalQuestions = Object.keys(masterQuestions).length;
+        // Lấy đáp án chuẩn trực tiếp từ kho đề activeExam vừa lấy trên Cloud về để chấm điểm tự động
+        let totalQuestions = Object.keys(activeExam.questions).length;
         let correctCount = 0;
 
         if (totalQuestions > 0) {
-            for (let qId in masterQuestions) {
-                const correctAnswer = masterQuestions[qId].correctAnswer;
+            for (let qId in activeExam.questions) {
+                const correctAnswer = activeExam.questions[qId].correctAnswer;
                 if (selectedAnswers[qId] && selectedAnswers[qId] === correctAnswer) {
                     correctCount++;
                 }
             }
         }
         
-        // Tính thang điểm 10
         let calculatedScore = totalQuestions > 0 ? (correctCount / totalQuestions) * 10 : 0;
-        calculatedScore = Math.round(calculatedScore * 100) / 100; // Làm tròn 2 chữ số thập phân
+        calculatedScore = Math.round(calculatedScore * 100) / 100;
 
-        const examPayload = {
+        const resultPayload = {
+            status: "Đã hoàn thành",
             submitTime: new Date().toLocaleString('vi-VN'),
             autoScore: calculatedScore,
             finalScore: calculatedScore,
             selectedAnswers: selectedAnswers,
-            isPublished: false,
-            adminComment: "",
-            screenRecordUrl: ""
+            screenViolations: screenViolationCount
         };
 
         const newHistoryRecord = {
             stt: Object.keys(currentUser.exams || {}).length + 1,
             subject: activeExam.subject,
             time: new Date().toLocaleDateString('vi-VN'),
-            expired: activeExam.expired,
+            expired: activeExam.expired || "N/A",
             status: "Đã hoàn thành",
             examId: activeExam.id 
         };
 
-        // Đồng bộ cập nhật chuỗi trạng thái lên Firebase Realtime Database
+        // Cập nhật trạng thái tổng quát tài khoản công việc
         await database.ref('users/' + username).update({ examStatus: "Đã nộp bài" });
-        await database.ref(`users/${username}/exams/${activeExam.id}`).update(examPayload);
+        
+        // Lưu trực tiếp kết quả thi chi tiết vào đúng thư mục mã đề assignedExams/{examId}
+        await database.ref(`users/${username}/assignedExams/${activeExam.id}`).update(resultPayload);
 
-        // Đẩy thông tin vào danh sách lịch sử thi hiển thị ở tien-do-cong-viec.html
+        // Lưu bản sao lịch sử rút gọn để hiển thị ở trang tiến độ công việc
         const histSnap = await database.ref(`users/${username}/historyExams`).once('value');
         let currentHistory = histSnap.val() || [];
         if (!Array.isArray(currentHistory)) currentHistory = Object.values(currentHistory);
@@ -430,7 +378,7 @@ async function submitExam() {
         currentHistory.push(newHistoryRecord);
         await database.ref(`users/${username}/historyExams`).set(currentHistory);
         
-        alert(`Nộp bài thi thành công! Điểm số tự động của bạn: ${calculatedScore}/10. Kết quả đã khóa bảo lưu.`);
+        alert(`Nộp bài thi thành công! Số lần thoát tiêu điểm ghi nhận: ${screenViolationCount} lần.`);
         window.location.replace('tien-do-cong-viec.html');
     } catch (error) {
         alert("Có lỗi xảy ra khi đóng gói nộp bài: " + error.message);

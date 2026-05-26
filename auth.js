@@ -15,6 +15,9 @@ if (!firebase.apps.length) {
 const database = firebase.database();
 const auth = firebase.auth();
 
+// Bộ nhớ đệm giữ thông tin Google tạm thời khi bổ sung dữ liệu bước cuối
+let tempGoogleUser = null;
+
 // Kiểm tra quyền truy cập bảo mật khi điều hướng
 (function() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -24,7 +27,6 @@ const auth = firebase.auth();
     if (!currentUser && !isLoginPage) {
         window.location.replace('index.html');
     } else if (currentUser && isLoginPage) {
-        // Nếu đã đăng nhập mà cố quay lại trang login
         if (currentUser.role === 'admin') {
             window.location.replace('admin-users.html');
         } else {
@@ -35,7 +37,7 @@ const auth = firebase.auth();
 
 // --- 2. Cơ chế điều khiển SPA Forms ---
 function switchForm(formId) {
-    const forms = ['loginSection', 'registerSection', 'forgotSection'];
+    const forms = ['loginSection', 'registerSection', 'forgotSection', 'googleUpdateSection'];
     forms.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = (id === formId) ? 'block' : 'none';
@@ -48,8 +50,8 @@ function cleanUsername(email) {
 
 // --- 3. Các chức năng Authentication ---
 
-// Đăng ký tài khoản mới
-async function registerWithEmail(email, password, fullName, userClass) {
+// Đăng ký tài khoản mới (Email truyền thống)
+async function registerWithEmail(email, password, fullName, userClass, birthday, age, position) {
     if (!email || !password || !fullName) return alert("Vui lòng điền đầy đủ thông tin bắt buộc!");
     try {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
@@ -61,12 +63,14 @@ async function registerWithEmail(email, password, fullName, userClass) {
             password: password, 
             name: fullName,
             class: userClass || "Thí sinh tự do",
+            birthday: birthday || "Chưa cập nhật",
+            age: age || "Chưa rõ",
+            position: position || "Thí sinh",
             sbd: "TS-" + Math.floor(1000 + Math.random() * 9000),
-            birthday: "Chưa cập nhật",
             isLocked: false,
-            role: "user", // Tài khoản đăng ký mặc định là user
+            role: "user", 
             exams: {},
-            examStatus: "Chưa bắt đầu" // Trạng thái làm bài realtime
+            examStatus: "Chưa bắt đầu"
         };
 
         await database.ref('users/' + username).set(userData);
@@ -84,7 +88,6 @@ async function loginWithEmail(email, password) {
         const snapshot = await database.ref('users/' + username).once('value');
         const dbUser = snapshot.val();
 
-        // Tài khoản đặc biệt cho Admin (nếu chưa có trong DB nhánh users, bạn có thể set thủ công role: "admin")
         if (dbUser && dbUser.isLocked && dbUser.role !== 'admin') {
             showLockModal(dbUser.lockInfo);
             return;
@@ -115,9 +118,9 @@ async function resetPassword(email) {
     }
 }
 
-// Đăng nhập bằng Google / Facebook
+// Đăng nhập bằng Google
 async function loginWithProvider(providerType) {
-    let provider = providerType === 'google' ? new firebase.auth.GoogleAuthProvider() : new firebase.auth.FacebookAuthProvider();
+    let provider = new firebase.auth.GoogleAuthProvider();
     try {
         const result = await auth.signInWithPopup(provider);
         const user = result.user;
@@ -132,24 +135,25 @@ async function loginWithProvider(providerType) {
             return;
         }
 
+        // Trường hợp tài khoản mới tinh từ Google chưa có trong hệ thống Realtime DB
         if (!dbUser) {
-            dbUser = {
+            tempGoogleUser = {
                 username: username,
                 email: user.email,
                 name: user.displayName,
-                class: "Thí sinh tự do",
                 sbd: "TS-" + Math.floor(1000 + Math.random() * 9000),
-                birthday: "Chưa cập nhật",
                 isLocked: false,
                 role: "user",
                 exams: {},
                 examStatus: "Chưa bắt đầu"
             };
-            await database.ref('users/' + username).set(dbUser);
+            // Chuyển sang form yêu cầu cập nhật nốt thông tin phụ
+            switchForm('googleUpdateSection');
+            return;
         }
 
+        // Nếu đã có thông tin rồi thì tiến hành đăng nhập trực tiếp luôn
         localStorage.setItem('currentUser', JSON.stringify(dbUser));
-        
         if (dbUser.role === 'admin') {
             window.location.replace('admin-users.html');
         } else {
@@ -157,6 +161,36 @@ async function loginWithProvider(providerType) {
         }
     } catch (error) {
         alert("Liên kết tài khoản mạng xã hội thất bại: " + error.message);
+    }
+}
+
+// Hàm bổ sung dữ liệu cho thí sinh đăng nhập bằng Google lần đầu
+async function handleGoogleAdditionalData() {
+    if (!tempGoogleUser) return;
+    
+    const uClass = document.getElementById('gClass').value.trim();
+    const uPosition = document.getElementById('gPosition').value;
+    const uBirthday = document.getElementById('gBirthday').value;
+    const uAge = document.getElementById('gAge').value.trim();
+
+    if(!uClass || !uBirthday || !uAge) {
+        return alert("Vui lòng nhập đầy đủ Lớp, Ngày sinh và Tuổi của bạn!");
+    }
+
+    // Gộp dữ liệu nhập thêm vào cấu trúc gốc
+    tempGoogleUser.class = uClass;
+    tempGoogleUser.position = uPosition;
+    tempGoogleUser.birthday = uBirthday;
+    tempGoogleUser.age = uAge;
+
+    try {
+        await database.ref('users/' + tempGoogleUser.username).set(tempGoogleUser);
+        localStorage.setItem('currentUser', JSON.stringify(tempGoogleUser));
+        alert("Cập nhật thông tin tài khoản thành công!");
+        
+        window.location.replace('dashboard.html');
+    } catch(err) {
+        alert("Lỗi lưu dữ liệu: " + err.message);
     }
 }
 
@@ -173,6 +207,5 @@ function showLockModal(lockInfo) {
 
 function logout() {
     localStorage.removeItem('currentUser');
-    // Dùng replace để người dùng không bấm "Back" lại trang cũ được
     window.location.replace('index.html');
 }
