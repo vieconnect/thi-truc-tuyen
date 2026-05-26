@@ -1,12 +1,12 @@
 // --- 1. Khởi tạo cấu hình Firebase ---
 const firebaseConfig = {
-  apiKey: "AIzaSyDuIqgr4qQA46dbcdH85s1jbFAlDNNn-qQ",
-  authDomain: "noi-bo.firebaseapp.com",
-  databaseURL: "https://noi-bo-default-rtdb.firebaseio.com",
-  projectId: "noi-bo",
-  storageBucket: "noi-bo.firebasestorage.app",
-  messagingSenderId: "493903703131",
-  appId: "1:493903703131:web:88449dcfe5f01a794e237e"
+  apiKey: "AIzaSyChxMftJKVMw0IHxzIml5QMzSrjLpB93Uo",
+  authDomain: "thi-truc-tuyen-vieedu.firebaseapp.com",
+  databaseURL: "https://thi-truc-tuyen-vieedu-default-rtdb.firebaseio.com",
+  projectId: "thi-truc-tuyen-vieedu",
+  storageBucket: "thi-truc-tuyen-vieedu.firebasestorage.app",
+  messagingSenderId: "910705881844",
+  appId: "1:910705881844:web:8cf9d67e4f3cf53cee24a1"
 };
 
 if (!firebase.apps.length) {
