@@ -3,121 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cổng Xác Thực Thí Sinh | VieConnect</title>
+    <title>Hệ Thống Thi Trực Tuyến Nội Bộ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="styles.css">
     <style>
-        body { background: #f0f2f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .auth-container { width: 100%; max-width: 440px; border-radius: 16px; border: none; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
-        .btn-social { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-weight: 500; }
+        body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .auth-card { border: none; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 99999; width: 350px; }
     </style>
 </head>
 <body>
 
-<div class="card auth-container p-4 bg-white">
-    <div id="loginSection">
-        <h3 class="text-center fw-bold text-dark mb-4">ĐĂNG NHẬP</h3>
-        <div class="mb-3">
-            <label class="form-label font-weight-bold">Địa chỉ Email</label>
-            <input type="email" id="loginEmail" class="form-control" placeholder="example@domain.com">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Mật khẩu</label>
-            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
-        </div>
-        <button class="btn btn-primary w-100 py-2 mb-3 fw-bold" onclick="handleLogin()">Đăng nhập</button>
-        
-        <div class="position-relative my-4 text-center">
-            <hr class="text-muted">
-            <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">Hoặc tiếp tục với</span>
-        </div>
-        
-        <button class="btn btn-outline-danger w-100 btn-social" onclick="loginWithProvider('google')">Google
-        </button>
-        
-        <div class="text-center mt-4 small">
-            <a href="#" class="text-decoration-none" onclick="switchForm('registerSection')">Đăng ký tài khoản</a>
-            <span class="text-muted mx-2">|</span>
-            <a href="#" class="text-decoration-none text-secondary" onclick="switchForm('forgotSection')">Quên mật khẩu?</a>
-        </div>
-    </div>
+<div id="toastContainer"></div>
 
-    <div id="registerSection" style="display: none;">
-        <h3 class="text-center fw-bold text-success mb-4">ĐĂNG KÝ THÍ SINH</h3>
-        <div class="mb-3">
-            <label class="form-label">Họ và Tên</label>
-            <input type="text" id="regName" class="form-control" placeholder="Nguyễn Văn A">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Lớp học / Đơn vị công tác</label>
-            <input type="text" id="regClass" class="form-control" placeholder="Ví dụ: Lớp 12A1 / Phòng NS">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Email đăng ký</label>
-            <input type="email" id="regEmail" class="form-control" placeholder="name@domain.com">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Mật khẩu mới</label>
-            <input type="password" id="regPassword" class="form-control" placeholder="Tối thiểu 6 ký tự">
-        </div>
-        <button class="btn btn-success w-100 py-2 mb-3 fw-bold" onclick="handleRegister()">Tạo tài khoản</button>
-        <div class="text-center small">
-            <a href="#" class="text-decoration-none" onclick="switchForm('loginSection')">Đã có tài khoản? Đăng nhập</a>
-        </div>
-    </div>
-
-    <div id="forgotSection" style="display: none;">
-        <h3 class="text-center fw-bold text-warning mb-3">QUÊN MẬT KHẨU</h3>
-        <p class="text-muted text-center small mb-4">Hệ thống tự động gửi đường link khôi phục qua Email của bạn.</p>
-        <div class="mb-3">
-            <label class="form-label">Nhập Email của bạn</label>
-            <input type="email" id="forgotEmail" class="form-control" placeholder="name@domain.com">
-        </div>
-        <button class="btn btn-warning text-white w-100 py-2 mb-3 fw-bold" onclick="handleForgot()">Gửi yêu cầu</button>
-        <div class="text-center small">
-            <a href="#" class="text-decoration-none text-secondary" onclick="switchForm('loginSection')">Quay lại trang đăng nhập</a>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="lockAccountModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title fw-bold">🛑 TÀI KHOẢN ĐANG BỊ KHÓA</h5>
+<div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="card auth-card p-4 p-md-5 bg-white" style="max-width: 480px; width: 100%;">
+        
+        <div id="loginSection">
+            <h3 class="text-center fw-bold text-dark mb-4">ĐĂNG NHẬP</h3>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Địa chỉ Email</label>
+                <input type="email" id="loginEmail" class="form-control" placeholder="name@company.com">
             </div>
-            <div class="modal-body p-4 text-center">
-                <p>Học viên: <strong id="displayName" class="text-primary">---</strong> hiện đang bị đình chỉ quyền truy cập.</p>
-                <div class="alert alert-secondary text-start mt-2">
-                    <div class="mb-1"><strong>Lý do:</strong> <span id="displayLockReason" class="text-danger">---</span></div>
-                    <small class="text-muted d-block" id="displayLockTime">Thời gian: ---</small>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Mật khẩu</label>
+                <div class="input-group">
+                    <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('loginPassword', this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
                 </div>
-                <button type="button" class="btn btn-secondary mt-2 w-100" data-bs-dismiss="modal">Đóng</button>
+            </div>
+            <div class="text-end mb-3">
+                <a href="#" class="text-decoration-none small" onclick="switchForm('forgotSection')">Quên mật khẩu?</a>
+            </div>
+            <button type="button" class="btn btn-primary w-100 fw-bold py-2 shadow-sm mb-3" onclick="handleLogin()">ĐĂNG NHẬP</button>
+            
+            <div class="d-flex align-items-center my-3">
+                <hr class="flex-grow-1">
+                <span class="mx-2 text-muted small">HOẶC</span>
+                <hr class="flex-grow-1">
+            </div>
+            
+            <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2 mb-2 d-flex align-items-center justify-content-center gap-2" onclick="loginWithGoogle()">
+                <i class="bi bi-google"></i> Đăng nhập bằng Google
+            </button>
+            
+            <div class="text-center mt-4">
+                <span class="text-muted small">Chưa có tài khoản? </span>
+                <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('registerSection')">Đăng ký ngay</a>
+            </div>
+        </div>
+
+        <div id="registerSection" style="display: none;">
+            <h3 class="text-center fw-bold text-dark mb-4">ĐĂNG KÝ HỆ THỐNG</h3>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Họ và tên</label>
+                <input type="text" id="regName" class="form-control" placeholder="Nguyễn Văn A">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Địa chỉ Email</label>
+                <input type="email" id="regEmail" class="form-control" placeholder="name@company.com">
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Lớp học / Đơn vị</label>
+                    <input type="text" id="regClass" class="form-control" placeholder="Ví dụ: Lớp 7A">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Chức vụ</label>
+                    <select id="regPosition" class="form-select">
+                        <option value="Thí sinh">Thí sinh</option>
+                        <option value="Giám thị">Giám thị</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-7">
+                    <label class="form-label fw-bold">Ngày sinh</label>
+                    <input type="date" id="regBirthday" class="form-control">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Tuổi</label>
+                    <input type="number" id="regAge" class="form-control" placeholder="13">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold">Mật khẩu bảo mật</label>
+                <div class="input-group">
+                    <input type="password" id="regPassword" class="form-control" placeholder="••••••••">
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('regPassword', this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm mb-3" onclick="handleRegisterSubmit()">XÁC NHẬN ĐĂNG KÝ</button>
+            
+            <div class="text-center mt-2">
+                <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('loginSection')">Quay lại Đăng nhập</a>
+            </div>
+        </div>
+
+<div id="googleUpdateSection" style="display: none;">
+    <h4 class="text-center fw-bold text-danger mb-2">BƯỚC CUỐI CÙNG</h4>
+    <p class="text-muted text-center small mb-4">Vui lòng cập nhật thông tin để tiếp tục vào phòng máy.</p>
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label class="form-label fw-bold small">Lớp học / Đơn vị</label>
+            <input type="text" id="gClass" class="form-control" placeholder="Ví dụ: Lớp 7A">
+        </div>
+        <div class="col-md-6">
+            <label class="form-label fw-bold small">Chức vụ</label>
+            <select id="gPosition" class="form-select">
+                <option value="Thí sinh">Thí sinh</option>
+                <option value="Giám thị">Giám thị</option>
+            </select>
+        </div>
+    </div>
+    <div class="row mb-4">
+        <div class="col-md-7">
+            <label class="form-label fw-bold small">Ngày sinh</label>
+            <input type="date" id="gBirthday" class="form-control">
+        </div>
+        <div class="col-md-5">
+            <label class="form-label fw-bold small">Tuổi</label>
+            <input type="number" id="gAge" class="form-control" placeholder="13">
+        </div>
+    </div>
+    
+    <button type="button" class="btn btn-danger w-100 fw-bold py-2 shadow-sm" onclick="handleGoogleAdditionalData()">HOÀN THÀNH & ĐĂNG NHẬP</button>
+</div>
+
+        <div id="forgotSection" style="display: none;">
+            <h3 class="text-center fw-bold text-dark mb-4">KHÔI PHỤC</h3>
+            <p class="text-muted text-center small mb-4">Nhập email hệ thống của bạn để nhận liên kết thiết lập lại mật khẩu.</p>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Địa chỉ Email</label>
+                <input type="email" id="forgotEmail" class="form-control" placeholder="name@company.com">
+            </div>
+            <button type="button" class="btn btn-warning w-100 fw-bold py-2 shadow-sm mb-3" onclick="handleResetPassword()">GỬI LIÊN KẾT</button>
+            <div class="text-center mt-3">
+                <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('loginSection')">Quay lại Đăng nhập</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="lockAccountModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center p-4">
+                <div class="text-danger mb-3" style="font-size: 3.5rem;">
+                    <i class="bi bi-exclamation-octagon-fill"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">Tài Khoản Đang Bị Khóa!</h4>
+                <p class="text-muted small">Thí sinh <strong id="displayName" class="text-primary">---</strong> hiện đang bị đình chỉ.</p>
+                <div class="alert alert-secondary text-start mt-2">
+                    <strong>Lý do hệ thống:</strong> <span id="displayLockReason" class="text-danger">---</span><br>
+                    <small id="displayLockTime" class="text-muted d-block mt-1"></small>
+                </div>
+                <button type="button" class="btn btn-secondary mt-2 w-100" data-bs-dismiss="modal" onclick="logout()">Đóng</button>
             </div>
         </div>
     </div>
 </div>
-    
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
 <script src="auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-function handleLogin() {
-    loginWithEmail(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value);
-}
-function handleRegister() {
+function handleRegisterSubmit() {
     registerWithEmail(
-        document.getElementById('regEmail').value,
+        document.getElementById('regEmail').value.trim(),
         document.getElementById('regPassword').value,
-        document.getElementById('regName').value,
-        document.getElementById('regClass').value
+        document.getElementById('regName').value.trim(),
+        document.getElementById('regClass').value.trim(),
+        document.getElementById('regBirthday').value,
+        document.getElementById('regAge').value.trim(),
+        document.getElementById('regPosition').value
     );
 }
-function handleForgot() {
-    resetPassword(document.getElementById('forgotEmail').value);
+
+function handleLogin() {
+    loginWithEmail(
+        document.getElementById('loginEmail').value.trim(),
+        document.getElementById('loginPassword').value
+    );
+}
+
+function handleResetPassword() {
+    resetPassword(document.getElementById('forgotEmail').value.trim());
+}
+
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === "password") {
+        input.type = "text";
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = "password";
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
 }
 </script>
 </body>
