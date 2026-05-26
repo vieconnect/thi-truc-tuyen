@@ -89,11 +89,20 @@
                     <input type="number" id="regAge" class="form-control" placeholder="13">
                 </div>
             </div>
-            <div class="mb-4">
+            <div class="mb-3">
                 <label class="form-label fw-bold">Mật khẩu bảo mật</label>
                 <div class="input-group">
                     <input type="password" id="regPassword" class="form-control" placeholder="••••••••">
                     <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('regPassword', this)">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-bold">Xác nhận mật khẩu</label>
+                <div class="input-group">
+                    <input type="password" id="regConfirmPassword" class="form-control" placeholder="••••••••">
+                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('regConfirmPassword', this)">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
@@ -138,7 +147,7 @@
 
         <div id="forgotSection" style="display: none;">
             <h3 class="text-center fw-bold text-dark mb-4">KHÔI PHỤC</h3>
-            <p class="text-muted text-center small mb-4">Nhập email hệ thống của bạn để nhận liên kết thiết lập lại mật khẩu.</p>
+            <p class="text-muted text-center small mb-4">Nhập email hệ thống của bạn để nhận liên kết thiết lại mật khẩu.</p>
             <div class="mb-3">
                 <label class="form-label fw-bold">Địa chỉ Email</label>
                 <input type="email" id="forgotEmail" class="form-control" placeholder="name@company.com">
@@ -179,9 +188,17 @@
 
 <script>
 function handleRegisterSubmit() {
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+    if (password !== confirmPassword) {
+        showToast("Xác nhận mật khẩu không trùng khớp!","danger");
+        return;
+    }
+
     registerWithEmail(
         document.getElementById('regEmail').value.trim(),
-        document.getElementById('regPassword').value,
+        password,
         document.getElementById('regName').value.trim(),
         document.getElementById('regClass').value.trim(),
         document.getElementById('regBirthday').value,

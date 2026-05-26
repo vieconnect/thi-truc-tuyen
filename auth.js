@@ -52,7 +52,7 @@ function cleanUsername(email) {
 
 // Đăng ký tài khoản mới (Email truyền thống)
 async function registerWithEmail(email, password, fullName, userClass, birthday, age, position) {
-    if (!email || !password || !fullName) return alert("Vui lòng điền đầy đủ thông tin bắt buộc!");
+    if (!email || !password || !fullName) return showToast("Vui lòng điền đầy đủ thông tin bắt buộc!" , "danger");
     try {
         const userCredential = await auth.createUserWithEmailAndPassword(email, password);
         const username = cleanUsername(email);
@@ -66,7 +66,7 @@ async function registerWithEmail(email, password, fullName, userClass, birthday,
             birthday: birthday || "Chưa cập nhật",
             age: age || "Chưa rõ",
             position: position || "Thí sinh",
-            sbd: "TS-" + Math.floor(1000 + Math.random() * 9000),
+            sbd: "EIO-" + Math.floor(1000 + Math.random() * 9000),
             isLocked: false,
             role: "user", 
             exams: {},
@@ -74,10 +74,10 @@ async function registerWithEmail(email, password, fullName, userClass, birthday,
         };
 
         await database.ref('users/' + username).set(userData);
-        alert("Đăng ký thành công tài khoản!");
+        showToast("Đăng ký thành công tài khoản!" , "success");
         switchForm('loginSection');
     } catch (error) {
-        alert("Lỗi đăng ký: " + error.message);
+        showToast("Lỗi đăng ký: " + error.message , "danger");
     }
 }
 
@@ -102,19 +102,19 @@ async function loginWithEmail(email, password) {
             window.location.replace('dashboard.html');
         }
     } catch (error) {
-        alert("Tài khoản hoặc mật khẩu không chính xác!");
+        showToast("Tài khoản hoặc mật khẩu không chính xác!" , "danger");
     }
 }
 
 // Khôi phục mật khẩu
 async function resetPassword(email) {
-    if (!email) return alert("Vui lòng nhập Email cần khôi phục!");
+    if (!email) return showToast("Vui lòng nhập Email cần khôi phục!" , "danger");
     try {
         await auth.sendPasswordResetEmail(email);
-        alert("Liên kết thay đổi mật khẩu đã được gửi! Vui lòng kiểm tra Hòm thư của bạn.");
+        showToast("Liên kết thay đổi mật khẩu đã được gửi! Vui lòng kiểm tra Hòm thư của bạn." , "success");
         switchForm('loginSection');
     } catch (error) {
-        alert("Thao tác thất bại: " + error.message);
+        showToast("Thao tác thất bại: " + error.message , "danger");
     }
 }
 
@@ -160,7 +160,7 @@ async function loginWithProvider(providerType) {
             window.location.replace('dashboard.html');
         }
     } catch (error) {
-        alert("Liên kết tài khoản mạng xã hội thất bại: " + error.message);
+        showToast("Liên kết tài khoản mạng xã hội thất bại: " + error.message , "danger");
     }
 }
 
@@ -174,7 +174,7 @@ async function handleGoogleAdditionalData() {
     const uAge = document.getElementById('gAge').value.trim();
 
     if(!uClass || !uBirthday || !uAge) {
-        return alert("Vui lòng nhập đầy đủ Lớp, Ngày sinh và Tuổi của bạn!");
+        return showToast("Vui lòng nhập đầy đủ Lớp, Ngày sinh và Tuổi của bạn!","danger");
     }
 
     // Gộp dữ liệu nhập thêm vào cấu trúc gốc
@@ -186,11 +186,11 @@ async function handleGoogleAdditionalData() {
     try {
         await database.ref('users/' + tempGoogleUser.username).set(tempGoogleUser);
         localStorage.setItem('currentUser', JSON.stringify(tempGoogleUser));
-        alert("Cập nhật thông tin tài khoản thành công!");
+        showToast("Cập nhật thông tin tài khoản thành công!","success");
         
         window.location.replace('dashboard.html');
     } catch(err) {
-        alert("Lỗi lưu dữ liệu: " + err.message);
+        showToast("Lỗi lưu dữ liệu: " + err.message , "danger");
     }
 }
 
@@ -208,4 +208,53 @@ function showLockModal(lockInfo) {
 function logout() {
     localStorage.removeItem('currentUser');
     window.location.replace('index.html');
+}
+
+function showToast(message, type = 'success') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+
+    const toastId = 'toast_' + Date.now();
+    let bgColor = 'bg-success';
+    let icon = '<i class="bi bi-check-circle-fill me-2 fs-5"></i>';
+    
+    if (type === 'danger' || type === 'error') {
+        bgColor = 'bg-danger';
+        icon = '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>';
+    } else if (type === 'warning') {
+        bgColor = 'bg-warning text-dark';
+        icon = '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>';
+    } else if (type === 'info') {
+        bgColor = 'bg-info text-dark';
+        icon = '<i class="bi bi-info-circle-fill me-2 fs-5"></i>';
+    }
+
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 shadow mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center">
+                    ${icon}
+                    <span>${message}</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-toast="toast" aria-label="Close"></button>
+            </div>
+            <div class="progress" style="height: 3px; background: rgba(255,255,255,0.2);">
+                <div class="progress-bar" role="progressbar" style="width: 100%; background-color: #fff; transition: width 4s linear;"></div>
+            </div>
+        </div>
+    `;
+
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    const toastElement = document.getElementById(toastId);
+    const bsToast = new bootstrap.Toast(toastElement);
+    bsToast.show();
+
+    const progressBar = toastElement.querySelector('.progress-bar');
+    setTimeout(() => {
+        if(progressBar) progressBar.style.width = '0%';
+    }, 50);
+
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
 }

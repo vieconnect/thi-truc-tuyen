@@ -57,7 +57,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="#">VieConnect Exam Portal</a>
+    <a class="navbar-brand" href="#">VieEdu</a>
     <div class="navbar-nav ms-auto">
         <span class="nav-link text-white me-3" id="welcomeMessage"></span>
         <a class="btn btn-sm btn-outline-light" href="dashboard.html">Về Dashboard</a>
@@ -223,7 +223,7 @@ async function startExam(examId) {
         renderQuestions(activeExam.questions);
         startScreenWindowTracker();
     } catch (error) {
-        alert("Lỗi tải thông tin phòng thi: " + error.message);
+        showToast("Lỗi tải thông tin phòng thi: " + error.message , "danger");
     }
 }
 
@@ -378,10 +378,10 @@ async function submitExam() {
         currentHistory.push(newHistoryRecord);
         await database.ref(`users/${username}/historyExams`).set(currentHistory);
         
-        alert(`Nộp bài thi thành công! Số lần thoát tiêu điểm ghi nhận: ${screenViolationCount} lần.`);
+        showToast("Nộp bài thi thành công! Số lần thoát tiêu điểm ghi nhận: ${screenViolationCount} lần.","success");
         window.location.replace('tien-do-cong-viec.html');
     } catch (error) {
-        alert("Có lỗi xảy ra khi đóng gói nộp bài: " + error.message);
+        showToast("Có lỗi xảy ra khi đóng gói nộp bài: " + error.message , "danger");
     }
 }
 </script>

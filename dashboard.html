@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thông tin cá nhân</title>
-    <!-- THÊM LINK CSS CỦA BOOTSTRAP Ở ĐÂY -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="styles.css">
     <script language="JavaScript">
     window.onload = function() {
@@ -14,67 +14,155 @@
             e.preventDefault();
         }, false);
         document.addEventListener("keydown", function(e) {
-            //document.onkeydown = function(e) {
-            // "I" key
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 73) {
-                disabledEvent(e);
-            }
-            // "J" key
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 74) {
-                disabledEvent(e);
-            }
-            // "S" key + macOS
-            if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
-                disabledEvent(e);
-            }
-            // "U" key
-            if (e.ctrlKey && e.keyCode == 85) {
-                disabledEvent(e);
-            }
-            // "F12" key
-            if (event.keyCode == 123) {
-                disabledEvent(e);
-            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 73) disabledEvent(e);
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 74) disabledEvent(e);
+            if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) disabledEvent(e);
+            if (e.ctrlKey && e.keyCode == 85) disabledEvent(e);
+            if (event.keyCode == 123) disabledEvent(e);
         }, false);
  
         function disabledEvent(e) {
-            if (e.stopPropagation) {
-                e.stopPropagation();
-            } else if (window.event) {
-                window.event.cancelBubble = true;
-            }
+            if (e.stopPropagation) e.stopPropagation();
+            else if (window.event) window.event.cancelBubble = true;
             e.preventDefault();
             return false;
         }
     };
-</script>
+    </script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+
+<div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 99999; width: 350px;"></div>
+
+<nav class="navbar navbar-expand-lg bg-body-tertiary">
   <div class="container-fluid">
-    <a class="navbar-brand" href="#"></a>
+    <a class="navbar-brand" href="#">VieEdu</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent1" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent1">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-                        <a class="nav-link" href="./dashboard.html">Thông tin cá nhân</a>
-                    </li>
-                    <li class="nav-item">
-    <a class="nav-link text-primary fw-bold" href="./thi-truc-tuyen.html">🎯 Vào Thi Trực Tuyến</a>
-</li>
-                        <li class="nav-item">
-                        <a class="nav-link" href="./tien-do-cong-viec.html">Tiến độ công việc</a>
-                    </li>
+        <li class="nav-item"><a class="nav-link active" href="./dashboard.html">Thông tin cá nhân</a></li>
+        <li class="nav-item"><a class="nav-link text-primary fw-bold" href="./thi-truc-tuyen.html">🎯 Vào Thi Trực Tuyến</a></li>
+        <li class="nav-item"><a class="nav-link" href="./tien-do-cong-viec.html">Tiến độ công việc</a></li>
       </ul>
-        
-                <span class="navbar-text me-3" id="welcomeMessage"></span>
-                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-  Đăng xuất
-</button>
+      <span class="navbar-text me-3" id="welcomeMessage"></span>
+      <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Đăng xuất</button>
+    </div>
+  </div>
+</nav>
 
-<!-- Modal -->
+<div class="container mt-5" style="max-width: 800px;">
+    <h1>Thông tin cá nhân</h1>
+    <hr>
+    
+    <div class="card p-4 shadow-sm mb-5">
+        <form id="profileForm">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Họ và tên</label>
+                    <input type="text" id="editName" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">ID / Số báo danh / Mã NV</label>
+                    <input type="text" id="editSBD" class="form-control" readonly disabled bg-light>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Ngày sinh</label>
+                    <input type="date" id="editBirthday" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Tuổi</label>
+                    <input type="number" id="editAge" class="form-control">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Lớp học / Đơn vị</label>
+                    <input type="text" id="editClass" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Chức vụ</label>
+                    <select id="editPosition" class="form-select">
+                        <option value="Thí sinh">Thí sinh</option>
+                        <option value="Giám thị">Giám thị</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Địa chỉ Email tài khoản</label>
+                <input type="email" id="editEmail" class="form-control" readonly disabled>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <button type="button" class="btn btn-primary fw-bold px-4" onclick="saveProfileChanges()">Lưu thay đổi</button>
+                <div id="passwordActionArea">
+                    </div>
+            </div>
+        </form>
+        <center class="mt-4 text-danger small">(Nếu nhân viên phát hiện thông tin cá nhân bị sai mà không thể sửa, vui lòng liên hệ với Chủ tịch qua SĐT: 0988065911)</center>
+    </div>
+</div>
+
+<div class="modal fade" id="googlePasswordModal" tabindex="-1" aria-labelledby="googlePasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning">
+      <div class="modal-header bg-warning bg-opacity-10">
+        <h5 class="modal-title fw-bold text-warning" id="googlePasswordModalLabel"><i class="bi bi-shield-lock"></i> Tạo mật khẩu Google</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold small">Mật khẩu mới</label>
+                <input type="password" id="gNewPassword" class="form-control" placeholder="••••••••">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold small">Nhập lại mật khẩu mới</label>
+                <input type="password" id="gConfirmNewPassword" class="form-control" placeholder="••••••••">
+            </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-warning fw-bold" onclick="handleCreatePasswordForGoogle()">Xác nhận thêm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="changePasswordModalLabel">Đổi Mật Khẩu Bảo Mật</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold small">Mật khẩu cũ hiện tại</label>
+                <input type="password" id="oldPassword" class="form-control" placeholder="••••••••">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold small">Mật khẩu mới</label>
+                <input type="password" id="newPassword" class="form-control" placeholder="••••••••">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold small">Xác nhận mật khẩu mới</label>
+                <input type="password" id="confirmNewPassword" class="form-control" placeholder="••••••••">
+            </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-success fw-bold" onclick="handleChangePasswordEmail()">Cập nhật mật khẩu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -82,9 +170,7 @@
         <h1 class="modal-title fs-5" id="staticBackdropLabel">Đăng xuất</h1>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
-        Bạn có chắc chắn muốn đăng xuất?
-      </div>
+      <div class="modal-body">Bạn có chắc chắn muốn đăng xuất?</div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Không</button>
         <button type="button" class="btn btn-outline-danger" id="logoutButton">Đăng xuất</button>
@@ -92,37 +178,64 @@
     </div>
   </div>
 </div>
-    </div>
-  </div>
-</nav>
-    <div class="container mt-5">
-        <h1>Thông tin cá nhân</h1>
-        <hr>
-        <div class="card p-4">
-            <p><strong>Họ và tên:</strong> <span id="userNameDisplay"></span></p>
-            <p><strong>ID nhân viên:</strong> <span id="userSBDDisplay"></span></p>
-            <p><strong>Ngày sinh:</strong> <span id="userBirthdayDisplay"></span></p>
-            <p><strong>Chức vụ:</strong> <span id="userClassDisplay"></span></p>
-            <center style="color:red ;">(Nếu nhân viên phát hiện thông tin cá nhân bị sai, vui lòng liên hệ với Chủ tịch qua SĐT: 0988065911)</center>
-        </div>
-    </div>
-    
-    <script>
-       document.addEventListener('DOMContentLoaded', () => {
-    updateExamRoomUI(); 
-    loadRealtimeUserList(); // Chạy danh sách quản lý thành viên
-    document.getElementById('logoutButton').addEventListener('click', logout);
-});
 
-function updateExamRoomUI() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (currentUser) {
-        if(document.getElementById('userNameDisplay')) document.getElementById('userNameDisplay').textContent = currentUser.name;
-        if(document.getElementById('userSBDDisplay')) document.getElementById('userSBDDisplay').textContent = currentUser.sbd;
-        if(document.getElementById('userBirthdayDisplay')) document.getElementById('userBirthdayDisplay').textContent = currentUser.birthday;
-        if(document.getElementById('userClassDisplay')) document.getElementById('userClassDisplay').textContent = currentUser.class;
-        if(document.getElementById('welcomeMessage')) document.getElementById('welcomeMessage').textContent = `Xin chào, ${currentUser.name}!`;
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="auth.js"></script>
+
+<script>
+let globalIsGoogleProvider = false; 
+
+// Hàm khởi tạo và hiển thị Toast thông báo tùy biến động thay alert()
+function showToast(message, type = 'success') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+
+    const toastId = 'toast_' + Date.now();
+    let bgColor = 'bg-success';
+    let icon = '<i class="bi bi-check-circle-fill me-2 fs-5"></i>';
+    
+    if (type === 'danger' || type === 'error') {
+        bgColor = 'bg-danger';
+        icon = '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>';
+    } else if (type === 'warning') {
+        bgColor = 'bg-warning text-dark';
+        icon = '<i class="bi bi-exclamation-circle-fill me-2 fs-5"></i>';
+    } else if (type === 'info') {
+        bgColor = 'bg-info text-dark';
+        icon = '<i class="bi bi-info-circle-fill me-2 fs-5"></i>';
     }
+
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 shadow mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center">
+                    ${icon}
+                    <span>${message}</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="progress" style="height: 3px; background: rgba(255,255,255,0.2);">
+                <div class="progress-bar" role="progressbar" style="width: 100%; background-color: #fff; transition: width 4s linear;"></div>
+            </div>
+        </div>
+    `;
+
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    const toastElement = document.getElementById(toastId);
+    const bsToast = new bootstrap.Toast(toastElement);
+    bsToast.show();
+
+    // Hiệu ứng thanh tiến trình chạy lùi
+    const progressBar = toastElement.querySelector('.progress-bar');
+    setTimeout(() => {
+        if(progressBar) progressBar.style.width = '0%';
+    }, 50);
+
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -131,69 +244,164 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.replace('index.html');
         return;
     }
-    document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name}`;
-    renderAvailableExams();
-});
+    
+    // Đổ dữ liệu vào form thông tin cá nhân
+    if(document.getElementById('editName')) document.getElementById('editName').value = currentUser.name || '';
+    if(document.getElementById('editSBD')) document.getElementById('editSBD').value = currentUser.sbd || '';
+    if(document.getElementById('editBirthday')) document.getElementById('editBirthday').value = currentUser.birthday || '';
+    if(document.getElementById('editAge')) document.getElementById('editAge').value = currentUser.age || '';
+    if(document.getElementById('editClass')) document.getElementById('editClass').value = currentUser.class || '';
+    if(document.getElementById('editPosition')) document.getElementById('editPosition').value = currentUser.position || 'Thí sinh';
+    if(document.getElementById('editEmail')) document.getElementById('editEmail').value = currentUser.email || '';
+    if(document.getElementById('welcomeMessage')) document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name}`;
 
-
-// Lắng nghe Realtime toàn bộ danh sách users từ Firebase và sinh nút Khóa/Mở khóa
-function loadRealtimeUserList() {
-    database.ref('users').on('value', (snapshot) => {
-        const users = snapshot.val();
-        const tbody = document.getElementById('adminUserTableBody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-
-        for (let username in users) {
-            const user = users[username];
-            const isLocked = user.isLocked || false;
+    // LẮNG NGHE TRẠNG THÁI FIREBASE ĐỂ PHÂN LOẠI NÚT CHÍNH XÁC
+    firebase.auth().onAuthStateChanged((userFirebase) => {
+        if (userFirebase) {
+            globalIsGoogleProvider = userFirebase.providerData.some(p => p.providerId === 'google.com');
             
-            const row = `
-                <tr>
-                    <td>${user.sbd || '---'}</td>
-                    <td><strong>${user.name || 'N/A'}</strong></td>
-                    <td>${user.email || username}</td>
-                    <td>${user.class || '---'}</td>
-                    <td>
-                        <span class="badge ${isLocked ? 'bg-danger' : 'bg-success'}">
-                            ${isLocked ? 'Bị khóa' : 'Đang hoạt động'}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm ${isLocked ? 'btn-warning' : 'btn-outline-danger'}" 
-                                onclick="toggleLockUser('${username}', ${isLocked}, '${user.name}')">
-                            ${isLocked ? '🔓 Mở khóa' : '🔒 Khóa TK'}
-                        </button>
-                    </td>
-                </tr>
-            `;
-            tbody.insertAdjacentHTML('beforeend', row);
+            const userKey = currentUser.username || currentUser.sbd || userFirebase.uid;
+            database.ref('users/' + userKey).once('value').then((snapshot) => {
+                const dbUser = snapshot.val() || {};
+                
+                currentUser.hasLocalPassword = dbUser.hasLocalPassword || false;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                renderPasswordButtonBasedOnStatus(currentUser.hasLocalPassword);
+            });
         }
     });
-}
 
-// Hàm cập nhật trực tiếp thuộc tính isLocked lên Database Firebase
-async function toggleLockUser(username, currentStatus, fullName) {
-    const nextStatus = !currentStatus;
-    const confirmMsg = nextStatus ? `Bạn có chắc chắn muốn KHÓA tài khoản ${fullName}?` : `Mở khóa cho ${fullName}?`;
-    
-    if (confirm(confirmMsg)) {
-        const lockInfo = nextStatus ? {
-            id: "LOCK-" + Math.floor(100, Math.random()*900),
-            name: fullName,
-            reason: "Chủ tịch/Quản trị viên yêu cầu tạm khóa dữ liệu",
-            startTime: new Date().toLocaleString(),
-            duration: "Cho đến khi có thông báo mới"
-        } : null;
+    if(document.getElementById('logoutButton')) {
+        document.getElementById('logoutButton').addEventListener('click', logout);
+    }
+});
 
-        await database.ref('users/' + username + '/isLocked').set(nextStatus);
-        await database.ref('users/' + username + '/lockInfo').set(lockInfo);
+// Điều khiển dựng nút động dựa theo cấu trúc phân loại tài khoản
+function renderPasswordButtonBasedOnStatus(hasLocalPassword) {
+    const actionArea = document.getElementById('passwordActionArea');
+    if (globalIsGoogleProvider && !hasLocalPassword) {
+        actionArea.innerHTML = `<button type="button" id="btnActionPassword" class="btn btn-outline-warning fw-bold" data-bs-toggle="modal" data-bs-target="#googlePasswordModal">Thêm mật khẩu</button>`;
+    } else {
+        actionArea.innerHTML = `<button type="button" id="btnActionPassword" class="btn btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Đổi mật khẩu</button>`;
     }
 }
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<script src="auth.js"></script>
+// XỬ LÝ KHI BẤM "XÁC NHẬN THÊM MẬT KHẨU GOOGLE"
+function handleCreatePasswordForGoogle() {
+    const newPass = document.getElementById('gNewPassword').value;
+    const confirmPass = document.getElementById('gConfirmNewPassword').value;
+
+    if(!newPass || !confirmPass) {
+        showToast("Vui lòng điền đầy đủ thông tin mật khẩu mới!", "warning");
+        return;
+    }
+    if(newPass !== confirmPass) {
+        showToast("Mật khẩu nhập lại không khớp nhau!", "danger");
+        return;
+    }
+
+    const user = firebase.auth().currentUser;
+    if (user) {
+        user.updatePassword(newPass).then(() => {
+            let currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            currentUser.hasLocalPassword = true;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+            const userKey = currentUser.username || currentUser.sbd || user.uid;
+            
+            database.ref('users/' + userKey).update({ hasLocalPassword: true }).then(() => {
+                showToast("Thêm mật khẩu cho tài khoản Google thành công!");
+                
+                // Đóng modal thêm mật khẩu
+                const modalEl = document.getElementById('googlePasswordModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if(modal) modal.hide();
+
+                // Clear dữ liệu cũ
+                document.getElementById('gNewPassword').value = "";
+                document.getElementById('gConfirmNewPassword').value = "";
+                
+                // Thay đổi nút lập tức thành đổi mật khẩu thông thường
+                renderPasswordButtonBasedOnStatus(true);
+            });
+
+        }).catch((error) => {
+            showToast("Lỗi thêm mật khẩu từ hệ thống: " + error.message, "danger");
+        });
+    } else {
+        showToast("Hết phiên đăng nhập an toàn, vui lòng đăng nhập lại!", "danger");
+    }
+}
+
+// HÀM ĐỔI MẬT KHẨU TÀI KHOẢN EMAIL THƯỜNG
+function handleChangePasswordEmail() {
+    const oldPass = document.getElementById('oldPassword').value;
+    const newPass = document.getElementById('newPassword').value;
+    const confirmPass = document.getElementById('confirmNewPassword').value;
+
+    if(!oldPass || !newPass || !confirmPass) {
+        showToast("Vui lòng nhập đầy đủ thông tin vào các ô!", "warning");
+        return;
+    }
+    if(newPass !== confirmPass) {
+        showToast("Mật khẩu mới nhập lại không trùng khớp!", "danger");
+        return;
+    }
+
+    const user = firebase.auth().currentUser;
+    if(user) {
+        const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
+        user.reauthenticateWithCredential(credential).then(() => {
+            return user.updatePassword(newPass);
+        }).then(() => {
+            showToast("Thay đổi mật khẩu bảo mật hệ thống thành công!");
+            
+            const modalEl = document.getElementById('changePasswordModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if(modal) modal.hide();
+            
+            document.getElementById('oldPassword').value = "";
+            document.getElementById('newPassword').value = "";
+            document.getElementById('confirmNewPassword').value = "";
+        }).catch((error) => {
+            showToast("Mật khẩu cũ không chính xác hoặc không đủ quyền thay đổi!", "danger");
+        });
+    }
+}
+
+// LƯU THÔNG TIN CHỈNH SỬA CƠ BẢN
+function saveProfileChanges() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) return;
+
+    const updatedData = {
+        name: document.getElementById('editName').value.trim(),
+        birthday: document.getElementById('editBirthday').value,
+        age: document.getElementById('editAge').value.trim(),
+        class: document.getElementById('editClass').value.trim(),
+        position: document.getElementById('editPosition').value
+    };
+
+    if(!updatedData.name) {
+        showToast("Họ và tên không được để trống!", "warning");
+        return;
+    }
+
+    const completeUser = { ...currentUser, ...updatedData };
+    localStorage.setItem('currentUser', JSON.stringify(completeUser));
+
+    const userKey = currentUser.username || currentUser.sbd;
+    database.ref('users/' + userKey).update(updatedData)
+    .then(() => {
+        showToast("Cập nhật dữ liệu cá nhân thành công!", "success");
+        if(document.getElementById('welcomeMessage')) {
+            document.getElementById('welcomeMessage').innerText = `Thí sinh: ${updatedData.name}`;
+        }
+    }).catch(err => {
+        showToast("Lỗi đồng bộ dữ liệu: " + err.message, "danger");
+    });
+}
+</script>
 </body>
 </html>
