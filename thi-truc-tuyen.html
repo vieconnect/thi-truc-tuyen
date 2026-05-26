@@ -142,7 +142,7 @@ async function renderAssignedExams() {
             const hasDone = userExamState.status === "Đã hoàn thành" || userExamState.submitTime !== undefined;
 
             // Truy vấn lấy thông tin tiêu đề từ nhánh gốc exams/{examId}
-            const globalExamSnapshot = await database.ref(`exams/${examId}`).once('value');
+            const globalExamSnapshot = await database.ref(`assignedExams/${examId}`).once('value');
             const globalExamData = globalExamSnapshot.val();
 
             if (!globalExamData) continue; // Bỏ qua nếu ID bài thi nhập sai hoặc không tồn tại trong kho đề
@@ -181,7 +181,7 @@ async function startExam(examId) {
     
     try {
         // Đọc đề thi gốc trực tiếp từ kho đề dùng chung bằng mã examId
-        const examSnapshot = await database.ref(`exams/${examId}`).once('value');
+        const examSnapshot = await database.ref(`assignedExams/${examId}`).once('value');
         const examData = examSnapshot.val();
 
         if (!examData) {
