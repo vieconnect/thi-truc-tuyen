@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* Khung chứa camera giám sát bo góc nổi cố định ở góc dưới màn hình */
         .exam-monitor-box {
             position: fixed;
             bottom: 20px;
@@ -15,12 +14,12 @@
             width: 180px;
             height: 135px;
             background: #222;
-            border: 3px solid #dc3545; /* Viền đỏ cảnh báo giám sát */
+            border: 3px solid #dc3545;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.3);
             z-index: 9999;
             overflow: hidden;
-            display: none; /* Chỉ hiển thị khi bắt đầu làm bài thi */
+            display: none;
         }
         .exam-monitor-box video {
             width: 100%;
@@ -119,43 +118,43 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAssignedExams();
 });
 
-// 1. Quét danh sách mã ID bài thi từ mục assignedExams của tài khoản và lấy thông tin từ kho đề exams gốc
+// SỬA LỖI CHÍNH XÁC: Đọc thông tin đề thi gốc từ nhánh `exams` theo đúng file JSON của bạn
 async function renderAssignedExams() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const container = document.getElementById('examListContainer');
     container.innerHTML = '';
     
     try {
-        // Đọc danh sách các ID bài thi được gán tại users/{username}/assignedExams
-        const assignedSnapshot = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
-        const assignedExams = assignedSnapshot.val() || {};
-        const examIds = Object.keys(assignedExams);
+        // Lấy danh sách ID đề thi được gán từ users/username/assignedExams
+        const userAssignedSnapshot = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
+        const userAssignedExams = userAssignedSnapshot.val() || {};
+        const examIds = Object.keys(userAssignedExams);
 
         if (examIds.length === 0) {
-            container.innerHTML = '<div class="text-center p-3 text-muted">Bạn chưa được phân phối hoặc giao bất kỳ ID bài thi nào!</div>';
+            container.innerHTML = '<div class="text-center p-3 text-muted">Bạn chưa được giao bài thi nào!</div>';
             return;
         }
 
-        // Lặp qua từng ID bài thi để đối chiếu dữ liệu hiển thị từ kho đề gốc `exams/`
         for (const examId of examIds) {
-            const userExamState = assignedExams[examId];
-            const hasDone = userExamState.status === "Đã hoàn thành" || userExamState.submitTime !== undefined;
+            const userExamState = userAssignedExams[examId];
+            // Kiểm tra trạng thái đã hoàn thành làm bài hay chưa
+            const hasDone = userExamState && (userExamState.status === "Đã hoàn thành" || userExamState.submitTime !== undefined);
 
-            // Truy vấn lấy thông tin tiêu đề từ nhánh gốc exams/{examId}
-            const globalExamSnapshot = await database.ref(`assignedExams/${examId}`).once('value');
+            // ĐÃ SỬA: Thay đổi đường dẫn trỏ chính xác vào nhánh `exams` gốc từ database của bạn
+            const globalExamSnapshot = await database.ref(`exams/${examId}`).once('value');
             const globalExamData = globalExamSnapshot.val();
 
-            if (!globalExamData) continue; // Bỏ qua nếu ID bài thi nhập sai hoặc không tồn tại trong kho đề
+            if (!globalExamData) continue; 
 
             let btnHtml = '';
             if (hasDone) {
-                btnHtml = `<span class="badge bg-danger mt-2 p-2 d-inline-block"><i class="bi bi-lock-fill"></i> Đã hoàn thành</span>`;
+                btnHtml = `<span class="badge bg-danger mt-2 p-2 d-inline-block">Đã hoàn thành</span>`;
             } else {
                 btnHtml = `<button class="btn btn-sm btn-primary mt-2" onclick="startExam('${examId}')">Bắt đầu làm bài</button>`;
             }
 
             const itemHtml = `
-                <div class="list-group-item list-group-item-action p-3 mb-2 border rounded shadow-xs">
+                <div class="list-group-item list-group-item-action p-3 mb-2 border rounded">
                     <div class="d-flex w-100 justify-content-between align-items-center">
                         <h6 class="mb-1 fw-bold text-dark">${globalExamData.subject || 'Môn thi không tên'}</h6>
                         <small class="badge bg-secondary text-light">${examId}</small>
@@ -171,41 +170,39 @@ async function renderAssignedExams() {
             container.innerHTML = '<div class="text-center p-3 text-danger">Không tìm thấy nội dung tương ứng với mã đề được giao!</div>';
         }
     } catch (error) {
-        container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi kết nối máy chủ dữ liệu!</div>';
+        container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi kết nối dữ liệu!</div>';
     }
 }
 
-// 2. Tải nội dung câu hỏi trực tiếp từ kho đề exams của hệ thống bằng ID
+// SỬA LỖI CHÍNH XÁC: Lấy mảng câu hỏi từ đúng nhánh `exams` khi thí sinh bấm làm bài
 async function startExam(examId) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     
     try {
-        // Đọc đề thi gốc trực tiếp từ kho đề dùng chung bằng mã examId
-        const examSnapshot = await database.ref(`assignedExams/${examId}`).once('value');
+        // ĐÃ SỬA: Thay đổi đường dẫn trỏ chính xác vào nhánh `exams` gốc để lấy questions
+        const examSnapshot = await database.ref(`exams/${examId}`).once('value');
         const examData = examSnapshot.val();
 
         if (!examData) {
-            alert("Mã đề thi này không tồn tại trên kho lưu trữ tổng!");
+            alert("Mã đề thi này không tồn tại trên hệ thống!");
             return;
         }
 
         activeExam = {
             id: examId,
             subject: examData.subject,
-            time: examData.time,
+            time: examData.time || "Không giới hạn",
             expired: examData.expired,
             questions: examData.questions || {}
         };
 
         screenViolationCount = 0;
 
-        // Ghi nhận trạng thái đang thi của tài khoản
         await database.ref('users/' + currentUser.username).update({ 
             examStatus: "Đang làm bài",
             screenViolations: 0
         });
         
-        // Cập nhật trạng thái cụ thể của ID đề thi này trong mục assignedExams
         await database.ref(`users/${currentUser.username}/assignedExams/${examId}`).update({
             status: "Đang làm bài"
         });
@@ -223,11 +220,10 @@ async function startExam(examId) {
         renderQuestions(activeExam.questions);
         startScreenWindowTracker();
     } catch (error) {
-        showToast("Lỗi tải thông tin phòng thi: " + error.message , "danger");
+        alert("Lỗi tải đề thi: " + error.message);
     }
 }
 
-// --- HỆ THỐNG GIÁM SÁT MÀN HÌNH CỬA SỔ ---
 function startScreenWindowTracker() {
     isExamInProgress = true;
     document.addEventListener('visibilitychange', handleVisibilityViolation);
@@ -243,13 +239,13 @@ function stopScreenWindowTracker() {
 
 function handleVisibilityViolation() {
     if (document.visibilityState === 'hidden' && isExamInProgress) {
-        processViolationCommit("Thí sinh rời khỏi tab làm bài (Mở cửa sổ khác / Thu nhỏ trình duyệt)");
+        processViolationCommit("Thí sinh rời khỏi tab làm bài");
     }
 }
 
 function handleBlurViolation() {
     if (isExamInProgress) {
-        processViolationCommit("Thí sinh click ra ngoài màn hình thi hoặc mở ứng dụng khác đè lên");
+        processViolationCommit("Thí sinh mở cửa sổ khác đè lên màn hình thi");
     }
 }
 
@@ -259,21 +255,17 @@ async function processViolationCommit(reason) {
     if (!currentUser) return;
 
     screenViolationCount++;
-
-    const violationPayload = {
-        time: new Date().toLocaleString('vi-VN'),
-        reason: reason
-    };
+    const timeStr = new Date().toLocaleString('vi-VN');
 
     try {
         await database.ref(`users/${currentUser.username}/screenViolations`).set(screenViolationCount);
         await database.ref(`users/${currentUser.username}/violationLogs`).push({
             violationIndex: screenViolationCount,
             reason: reason,
-            time: violationPayload.time
+            time: timeStr
         });
     } catch (err) {
-        console.error("Lỗi đồng bộ vi phạm:", err);
+        console.error("Lỗi ghi nhận vi phạm:", err);
     }
 }
 
@@ -283,7 +275,7 @@ function renderQuestions(questions) {
     
     const qIds = Object.keys(questions);
     if (qIds.length === 0) {
-        container.innerHTML = '<p class="text-danger">Đề thi này chưa được thiết lập câu hỏi.</p>';
+        container.innerHTML = '<p class="text-danger">Đề thi chưa được cấu hình câu hỏi.</p>';
         return;
     }
 
@@ -306,8 +298,8 @@ function renderQuestions(questions) {
         }
 
         const qHtml = `
-            <div class="mb-4 p-3 border-bottom rounded bg-white shadow-xs">
-                <p class="fw-bold text-dark">Câu ${index}: ${qData.title}</p>
+            <div class="mb-4 p-3 border-bottom rounded bg-white">
+                <p class="fw-bold">Câu ${index}: ${qData.title}</p>
                 <div class="options-group">${optionsHtml}</div>
             </div>
         `;
@@ -316,7 +308,6 @@ function renderQuestions(questions) {
     });
 }
 
-// 4. Cơ chế nộp bài và đồng bộ điểm số vào assignedExams
 async function submitExam() {
     if (!activeExam) return;
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -330,7 +321,6 @@ async function submitExam() {
     try {
         stopScreenWindowTracker(); 
 
-        // Lấy đáp án chuẩn trực tiếp từ kho đề activeExam vừa lấy trên Cloud về để chấm điểm tự động
         let totalQuestions = Object.keys(activeExam.questions).length;
         let correctCount = 0;
 
@@ -352,36 +342,33 @@ async function submitExam() {
             autoScore: calculatedScore,
             finalScore: calculatedScore,
             selectedAnswers: selectedAnswers,
-            screenViolations: screenViolationCount
+            screenViolations: screenViolationCount,
+            isPublished: false 
         };
 
-        const newHistoryRecord = {
-            stt: Object.keys(currentUser.exams || {}).length + 1,
-            subject: activeExam.subject,
-            time: new Date().toLocaleDateString('vi-VN'),
-            expired: activeExam.expired || "N/A",
-            status: "Đã hoàn thành",
-            examId: activeExam.id 
-        };
-
-        // Cập nhật trạng thái tổng quát tài khoản công việc
         await database.ref('users/' + username).update({ examStatus: "Đã nộp bài" });
         
-        // Lưu trực tiếp kết quả thi chi tiết vào đúng thư mục mã đề assignedExams/{examId}
         await database.ref(`users/${username}/assignedExams/${activeExam.id}`).update(resultPayload);
 
-        // Lưu bản sao lịch sử rút gọn để hiển thị ở trang tiến độ công việc
         const histSnap = await database.ref(`users/${username}/historyExams`).once('value');
         let currentHistory = histSnap.val() || [];
         if (!Array.isArray(currentHistory)) currentHistory = Object.values(currentHistory);
         
+        const newHistoryRecord = {
+            stt: currentHistory.length + 1,
+            subject: activeExam.subject,
+            time: new Date().toLocaleString('vi-VN'),
+            expired: activeExam.expired || "Không giới hạn",
+            status: "Đã hoàn thành",
+            examId: activeExam.id 
+        };
+        
         currentHistory.push(newHistoryRecord);
         await database.ref(`users/${username}/historyExams`).set(currentHistory);
         
-        showToast("Nộp bài thi thành công! Số lần thoát tiêu điểm ghi nhận: ${screenViolationCount} lần.","success");
         window.location.replace('tien-do-cong-viec.html');
     } catch (error) {
-        showToast("Có lỗi xảy ra khi đóng gói nộp bài: " + error.message , "danger");
+        alert("Lỗi nộp bài thi: " + error.message);
     }
 }
 </script>

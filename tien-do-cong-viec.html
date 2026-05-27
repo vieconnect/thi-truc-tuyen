@@ -146,8 +146,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const historySnap = await database.ref(`users/${currentUser.username}/historyExams`).once('value');
         const historyExams = historySnap.val() || [];
 
-        // 2. Tải thông tin chấm điểm, trạng thái công bố chi tiết từ Admin (exams)
-        const scoreSnap = await database.ref(`users/${currentUser.username}/exams`).once('value');
+        // 2. ĐÃ SỬA LỖI: Tải thông tin chấm điểm từ nhánh assignedExams thay vì nhánh exams cũ
+        const scoreSnap = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
         const adminExamsData = scoreSnap.val() || {};
 
         // Chuyển dữ liệu sang mảng để xử lý vòng lặp map/forEach
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 </script>
 
     <script>
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle=\"tooltip\"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
     </script>
 
