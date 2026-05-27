@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phòng thi</title>
+    <title>Phòng thi - Tiến độ công việc</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="styles.css">
@@ -13,26 +13,11 @@
             e.preventDefault();
         }, false);
         document.addEventListener("keydown", function(e) {
-            // "I" key
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 73) {
-                disabledEvent(e);
-            }
-            // "J" key
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 74) {
-                disabledEvent(e);
-            }
-            // "S" key + macOS
-            if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
-                disabledEvent(e);
-            }
-            // "U" key
-            if (e.ctrlKey && e.keyCode == 85) {
-                disabledEvent(e);
-            }
-            // "F12" key
-            if (event.keyCode == 123) {
-                disabledEvent(e);
-            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 73) disabledEvent(e);
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 74) disabledEvent(e);
+            if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) disabledEvent(e);
+            if (e.ctrlKey && e.keyCode == 85) disabledEvent(e);
+            if (event.keyCode == 123) disabledEvent(e);
         }, false);
  
         function disabledEvent(e) {
@@ -62,39 +47,28 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent1">
           <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-            <li class="nav-item">
-                <a class="nav-link" href="./dashboard.html">Thông tin cá nhân</a>
-            </li>
-            <li class="nav-item">
-    <a class="nav-link text-primary fw-bold" href="./thi-truc-tuyen.html">🎯 Vào Thi Trực Tuyến</a>
-</li>
-            <li class="nav-item">
-                <a class="nav-link" href="./tien-do-cong-viec.html">Tiến độ công việc</a>
-            </li>
+            <li class="nav-item"><a class="nav-link" href="./dashboard.html">Thông tin cá nhân</a></li>
+            <li class="nav-item"><a class="nav-link text-primary fw-bold" href="./thi-truc-tuyen.html">🎯 Vào Thi Trực Tuyến</a></li>
+            <li class="nav-item"><a class="nav-link text-success fw-bold" href="./tien-do-cong-viec.html">Tiến độ công việc</a></li>
           </ul>
-            
-            <span class="navbar-text me-3" id="welcomeMessage"></span>
-            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-              Đăng xuất
-            </button>
+          <span class="navbar-text me-3" id="welcomeMessage"></span>
+          <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#staticBackdrop">Đăng xuất</button>
 
-            <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-              <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Đăng xuất</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
-                  <div class="modal-body">
-                    Bạn có chắc chắn muốn đăng xuất?
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Không</button>
-                    <button type="button" class="btn btn-outline-danger" id="logoutButton">Đăng xuất</button>
-                  </div>
+          <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h1 class="modal-title fs-5" id="staticBackdropLabel">Đăng xuất</h1>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">Bạn có chắc chắn muốn đăng xuất?</div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Không</button>
+                  <button type="button" class="btn btn-outline-danger" id="logoutButton">Đăng xuất</button>
                 </div>
               </div>
             </div>
+          </div>
         </div>
       </div>
     </nav>
@@ -104,28 +78,24 @@
         <hr>
         <div class="card p-4">
             <div class="table-wrapper">
-    <table class="fl-table">
-        <thead>
-            <tr>
-                <th>STT</th>
-                <th>Tên đề thi công việc</th>
-                <th>Thời gian làm</th>
-                <th>Hạn chót</th>
-                <th>Trạng thái</th>
-                <th style="text-align: center;">Điểm số công bố</th>
-            </tr>
-        </thead>
-        <tbody id="contentTableBody">
-            </tbody>
-    </table>
-</div>
+                <table class="fl-table">
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Tên đề thi công việc</th>
+                            <th>Thời gian làm</th>
+                            <th>Hạn chót</th>
+                            <th>Trạng thái</th>
+                            <th style="text-align: center;">Điểm số công bố</th>
+                            <th style="text-align: left; min-width: 220px; padding-left: 15px;">Nhận xét của giáo viên</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contentTableBody"></tbody>
+                </table>
+            </div>
             <div style="color: red;">* Nếu nhân viên không thấy đủ các thông tin, hãy kéo bảng sang trái màn hình</div>
         </div>
     </div>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="auth.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
@@ -135,50 +105,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Định vị chính xác thẻ tbody theo cấu trúc lớp fl-table của bạn
     const tableBody = document.getElementById('contentTableBody'); 
     if(!tableBody) return;
 
-    tableBody.innerHTML = '<tr><td colspan="6" class="text-center" style="color: #666;"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang đồng bộ tiến độ hệ thống...</td></tr>';
+    // Tăng colspan lên 7 cột để khớp giao diện khi đang tải
+    tableBody.innerHTML = '<tr><td colspan="7" class="text-center" style="color: #666;"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang đồng bộ tiến độ hệ thống...</td></tr>';
 
     try {
-        // 1. Tải mảng lịch sử nộp bài (historyExams)
+        // Lấy lịch sử nộp bài của user
         const historySnap = await database.ref(`users/${currentUser.username}/historyExams`).once('value');
         const historyExams = historySnap.val() || [];
 
-        // 2. ĐÃ SỬA LỖI: Tải thông tin chấm điểm từ nhánh assignedExams thay vì nhánh exams cũ
+        // Lấy chi tiết bài chấm điểm từ nhánh assignedExams (Chứa dữ liệu từ Modal Admin)
         const scoreSnap = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
         const adminExamsData = scoreSnap.val() || {};
 
-        // Chuyển dữ liệu sang mảng để xử lý vòng lặp map/forEach
         const records = Array.isArray(historyExams) ? historyExams : Object.values(historyExams);
 
         if (records.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted" style="padding: 20px;">Bạn chưa thực hiện công việc hoặc bài thi nào.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding: 20px;">Bạn chưa thực hiện công việc hoặc bài thi nào.</td></tr>';
             return;
         }
 
         tableBody.innerHTML = '';
         
         records.forEach(record => {
-            // Xác định mã bài thi (examId) của dòng hiện tại (Ví dụ: exam_01, exam_02)
-            // Nếu cấu trúc payload cũ chưa có examId, hệ thống tự động suy luận thông minh qua thuộc tính STT
             const examId = record.examId || (record.stt === 1 ? "exam_01" : "exam_02");
             const liveExamDetails = adminExamsData[examId];
             
             let scoreDisplayHtml = "";
+            let commentDisplayHtml = ""; 
             
+            // KIỂM TRA ĐIỀU KIỆN HIỂN THỊ / THU HỒI TỪ MODAL ADMIN
             if (liveExamDetails) {
                 if (liveExamDetails.isPublished === true) {
-                    // Admin đã ấn nút duyệt công bố kết quả
+                    // TRẠNG THÁI CÔNG BỐ: Hiển thị điểm số kèm theo ô nhận xét từ Admin
                     scoreDisplayHtml = `<b style="color: #2e7d32; font-size: 1.1rem;">${liveExamDetails.finalScore}</b> <span style="font-size:0.8rem; color:#777;">/ 10</span>`;
+                    
+                    // Nhận diện dữ liệu nhận xét từ modal Admin (Hỗ trợ các key phổ biến: comment, adminComment, hoặc review)
+                    const adminComment = liveExamDetails.comment || liveExamDetails.adminComment || liveExamDetails.teacherComment || "";
+                    
+                    if (adminComment.trim() !== "") {
+                        commentDisplayHtml = `<span style="color: #0d6efd; font-weight: 500;"><i class="bi bi-chat-right-text me-1"></i> ${adminComment}</span>`;
+                    } else {
+                        commentDisplayHtml = `<span class="text-muted" style="font-style: italic; font-size: 0.85rem;">Không có nhận xét</span>`;
+                    }
                 } else {
-                    // Thí sinh đã nộp nhưng Admin chưa duyệt công bố điểm công khai
+                    // TRẠNG THÁI THU HỒI (isPublished = false hoặc không tồn tại): Thu hồi cả Điểm lẫn Nhận xét
                     scoreDisplayHtml = `<i style="color: #e65100; font-size: 0.85rem;">Chưa có kết quả (Chờ duyệt)</i>`;
+                    commentDisplayHtml = `<i style="color: #e65100; font-size: 0.85rem;">Đang cập nhật...</i>`;
                 }
             } else {
-                // Phòng trường hợp thí sinh nộp bài dạng mock dữ liệu cũ không có chi tiết bài làm
+                // Trường hợp dữ liệu cũ hoặc chưa chấm
                 scoreDisplayHtml = `<i style="color: #9e9e9e; font-size: 0.85rem;">Chưa có kết quả</i>`;
+                commentDisplayHtml = `<i style="color: #9e9e9e; font-size: 0.85rem;">Chưa có nhận xét</i>`;
             }
 
             const rowHtml = `
@@ -189,6 +169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td><span style="color: #c62828; font-size: 0.9rem;">${record.expired || '---'}</span></td>
                     <td><span class="badge bg-success" style="padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; background-color: #2e7d32; color: #fff;">✓ ${record.status || 'Đã hoàn thành'}</span></td>
                     <td style="text-align: center; font-weight: bold;">${scoreDisplayHtml}</td>
+                    <td style="text-align: left; padding-left: 15px; word-break: break-word;">${commentDisplayHtml}</td>
                 </tr>
             `;
             tableBody.insertAdjacentHTML('beforeend', rowHtml);
@@ -196,13 +177,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error("Lỗi đồng bộ dữ liệu fl-table:", error);
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger" style="padding: 20px;">Lỗi tải dữ liệu tiến độ. Vui lòng làm mới trang!</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger" style="padding: 20px;">Lỗi tải dữ liệu tiến độ. Vui lòng làm mới trang!</td></tr>';
     }
 });
 </script>
 
     <script>
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle=\"tooltip\"]')
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
     </script>
 
@@ -211,18 +192,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           const btn = e.target.closest('[data-bs-target="#staticBackdrop"]');
           if (btn) {
             const modal = document.querySelector('#staticBackdrop');
-            const dialog = modal.querySelector('.modal-dialog');
-            const rect = btn.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            dialog.style.transformOrigin = `${x}px ${y}px`;
-          }
-        });
-
-        document.addEventListener('click', function (e) {
-          const btn = e.target.closest('[data-bs-target="#staticBackdrop1"]');
-          if (btn) {
-            const modal = document.querySelector('#staticBackdrop1');
             const dialog = modal.querySelector('.modal-dialog');
             const rect = btn.getBoundingClientRect();
             const x = rect.left + rect.width / 2;
