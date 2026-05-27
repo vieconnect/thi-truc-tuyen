@@ -19,9 +19,59 @@
         }
         .log-timeline { max-height: 300px; overflow-y: auto; padding-right: 5px; }
         .log-item { border-left: 3px solid #dc3545; padding-left: 10px; margin-bottom: 12px; font-size: 0.9rem; }
+        
+        /* CẤU HÌNH TOAST CONTAINER */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 99999;
+            width: 350px;
+            pointer-events: none;
+        }
+        .toast {
+            opacity: 0;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+            pointer-events: auto;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast-body {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+        }
+        .toast-body i {
+            flex-shrink: 0 !important;
+            margin-right: 12px;
+        }
+        .toast-body span {
+            word-break: break-word;
+            line-height: 1.4;
+        }
+        .progress {
+            height: 3px !important;
+            background: rgba(255,255,255,0.2) !important;
+            border-radius: 0;
+        }
+        .progress-bar {
+            background-color: white !important;
+            animation: toastProgressAnim 4s linear forwards;
+        }
+        @keyframes toastProgressAnim {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
     </style>
 </head>
 <body class="bg-light">
+
+<div id="toastContainer"></div>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
   <div class="container-fluid">
@@ -136,8 +186,44 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn type-sm btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
                 <button type="button" class="btn btn-sm btn-danger px-3" onclick="executeLockUser()">Xác nhận khóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmUnlockModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-question-circle-fill"></i> Xác nhận thao tác</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmUnlockBody">
+                Bạn chắc chắn muốn mở khóa lại cho tài khoản thí sinh này?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-sm btn-success px-3" id="btnConfirmUnlockExecute">Xác nhận mở khóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmResetModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Cảnh báo Thu hồi điểm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmResetBody">
+                Bạn có chắc chắn muốn hủy bỏ trạng thái công bố và thu hồi điểm số của thí sinh này?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-sm btn-danger px-3" id="btnConfirmResetExecute">Đồng ý thu hồi</button>
             </div>
         </div>
     </div>
@@ -200,8 +286,8 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer modal-footer d-flex justify-content-between">
-                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="executeResetExamPublishStatus()">
+            <div class="modal-footer d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="openResetConfirmModal()">
                     <i class="bi bi-arrow-counterclockwise"></i> Xóa tiến trình (Thu hồi điểm)
                 </button>
                 <div>
@@ -223,6 +309,52 @@
 <script>
 let localUsersCache = {};
 let isModelsLoaded = false;
+
+// HÀM KHỞI TẠO VÀ HIỂN THỊ TOAST ĐỘNG THAY THẾ CƠ CHẾ ALERT() CŨ
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) return;
+
+    const toastId = 'toast_' + Date.now() + Math.floor(Math.random() * 100);
+    let bgColor = 'bg-dark';
+    let icon = '<i class="bi bi-info-circle-fill me-2 fs-5"></i>';
+
+    if (type === 'success') {
+        bgColor = 'bg-success';
+        icon = '<i class="bi bi-check-circle-fill me-2 fs-5"></i>';
+    } else if (type === 'danger' || type === 'error') {
+        bgColor = 'bg-danger';
+        icon = '<i class="bi bi-x-circle-fill me-2 fs-5"></i>';
+    } else if (type === 'warning') {
+        bgColor = 'bg-warning text-dark';
+        icon = '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>';
+    }
+
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 shadow mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center">
+                    ${icon}
+                    <span>${message}</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: 100%;"></div>
+            </div>
+        </div>
+    `;
+
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    const toastElement = document.getElementById(toastId);
+    const bsToast = new bootstrap.Toast(toastElement);
+    bsToast.show();
+
+    // Tự động giải phóng DOM khi ẩn toast xong (Thêm hiệu ứng slide out mượt mà)
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     loadRealtimeUsers();
@@ -263,11 +395,9 @@ function loadRealtimeUsers() {
             } else if (currentExamStatus === 'Đã nộp bài' || currentExamStatus === 'Đã nộp bài thi') {
                 let completedExamsList = [];
                 
-                // ĐÃ SỬA: Thêm điều kiện lọc chỉ hiển thị các đề đã thực sự nộp bài làm
                 if (user.assignedExams) {
                     Object.keys(user.assignedExams).forEach(examId => {
                         const examDetails = user.assignedExams[examId];
-                        // Kiểm tra xem đề thi có chứa dữ liệu nộp bài hay không
                         if (examDetails && (examDetails.submitTime !== undefined || examDetails.status === "Đã hoàn thành")) {
                             completedExamsList.push(examId.toUpperCase());
                         }
@@ -301,7 +431,7 @@ function loadRealtimeUsers() {
                             <i class="bi bi-check-circle"></i> Công báo
                         </button>
                         ${isLocked ? 
-                            `<button class="btn btn-success" onclick="unlockUser('${username}', '${user.name}')">Mở khóa</button>` : 
+                            `<button class="btn btn-success" onclick="askConfirmUnlock('${username}', '${user.name}')">Mở khóa</button>` : 
                             `<button class="btn btn-danger" onclick="openLockModal('${username}', '${user.name}', '${user.sbd}')">Khóa</button>`
                         }
                     </div>
@@ -345,22 +475,33 @@ async function executeLockUser() {
         await database.ref(`users/${username}/isLocked`).set(true);
         await database.ref(`users/${username}/lockInfo`).set(lockInfo);
         bootstrap.Modal.getInstance(document.getElementById('lockModal')).hide();
-        alert(`Đã khóa thành công tài khoản thí sinh [${name}]`);
+        showToast(`Đã khóa thành công tài khoản thí sinh [${name}]`, 'success');
     } catch (error) {
-        alert("Lỗi: " + error.message);
+        showToast("Lỗi hệ thống: " + error.message, 'danger');
     }
 }
 
-async function unlockUser(username, fullName) {
-    if (confirm(`Bạn chắc chắn muốn mở khóa lại cho tài khoản [${fullName}]?`)) {
+// THAY THẾ CONFIRM() MỞ KHÓA BẰNG BOOTSTRAP MODAL ĐỂ KHÔNG CHẶN LUỒNG TRÌNH DUYỆT
+function askConfirmUnlock(username, fullName) {
+    document.getElementById('confirmUnlockBody').innerHTML = `Bạn chắc chắn muốn tiến hành mở khóa lại quyền truy cập cho thí sinh <strong>[${fullName}]</strong>?`;
+    const actionBtn = document.getElementById('btnConfirmUnlockExecute');
+    
+    // Xóa sự kiện click cũ tránh lặp lệnh nộp chồng
+    const newActionBtn = actionBtn.cloneNode(true);
+    actionBtn.parentNode.replaceChild(newActionBtn, actionBtn);
+
+    newActionBtn.addEventListener('click', async () => {
         try {
             await database.ref(`users/${username}/isLocked`).set(false);
             await database.ref(`users/${username}/lockInfo`).remove();
-            alert("Đã mở khóa tài khoản thành công!");
+            bootstrap.Modal.getInstance(document.getElementById('confirmUnlockModal')).hide();
+            showToast(`Đã khôi phục quyền hoạt động cho tài khoản [${fullName}] thành công!`, 'success');
         } catch (error) {
-            alert("Lỗi: " + error.message);
+            showToast("Gặp lỗi khi mở khóa: " + error.message, 'danger');
         }
-    }
+    });
+
+    new bootstrap.Modal(document.getElementById('confirmUnlockModal')).show();
 }
 
 function openStatusModal(username) {
@@ -373,9 +514,6 @@ function openStatusModal(username) {
         let index = 0;
         for (let examId in user.assignedExams) {
             const exam = user.assignedExams[examId];
-            
-            // ĐÃ SỬA: Bỏ qua hiển thị các bài chưa làm ở bảng nhật ký chi tiết này nếu cần, 
-            // hoặc giữ lại để xem tiến độ nhưng đánh dấu rõ ràng. Ở đây giữ lại và hiển thị trạng thái "Chưa làm" trực quan.
             const isDone = exam && (exam.submitTime !== undefined || exam.status === "Đã hoàn thành");
             index++;
             
@@ -431,7 +569,7 @@ function openStatusModal(username) {
                         <div class="accordion-body bg-white">
                             <div class="row g-3">
                                 <div class="col-md-6 border-end">
-                                    <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-info-square"></i> Tổng quan kết quả</h6>
+                                    <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-square"></i> Tổng quan kết quả</h6>
                                     <p class="mb-1"><strong>Trạng thái:</strong> <span class="badge ${isDone ? 'bg-success' : 'bg-secondary'}">${isDone ? 'Đã nộp bài' : 'Chưa thực hiện'}</span></p>
                                     <p class="mb-1"><strong>Nộp bài lúc:</strong> <span class="text-muted">${exam.submitTime || '---'}</span></p>
                                     <p class="mb-1"><strong>Điểm máy tự chấm:</strong> <span class="badge bg-dark fs-6">${exam.autoScore ?? 'N/A'}</span></p>
@@ -479,18 +617,17 @@ function openPublishModal(username) {
     const user = localUsersCache[username];
     
     if (!user.assignedExams || Object.keys(user.assignedExams).length === 0) {
-        alert("Thí sinh này chưa được phân phối đề thi nào!");
+        showToast("Thí sinh này chưa được phân phối đề thi nào!", "warning");
         return;
     }
 
-    // ĐÃ SỬA: Lọc ra danh sách mã bài thi thực sự đã làm hoàn thành để đưa vào dropdown
     const completedExamIds = Object.keys(user.assignedExams).filter(examId => {
         const examDetails = user.assignedExams[examId];
         return examDetails && (examDetails.submitTime !== undefined || examDetails.status === "Đã hoàn thành");
     });
 
     if (completedExamIds.length === 0) {
-        alert("Thí sinh này chưa hoàn thành nộp bài của bất kì đề thi nào để thẩm định điểm!");
+        showToast("Thí sinh này chưa hoàn thành nộp bài của bất kỳ đề thi nào!", "warning");
         return;
     }
 
@@ -545,9 +682,13 @@ async function executePublishResult() {
     const finalScore = parseFloat(document.getElementById('finalScore').value);
     const adminComment = document.getElementById('adminComment').value;
 
-    if (!examId) return alert("Vui lòng chọn một bài thi hợp lệ!");
+    if (!examId) {
+        showToast("Vui lòng chọn một bài thi hợp lệ!", "warning");
+        return;
+    }
     if (isNaN(finalScore) || finalScore < 0 || finalScore > 10) {
-        return alert("Vui lòng nhập điểm số hợp lệ từ 0 đến 10!");
+        showToast("Vui lòng nhập điểm số hợp lệ từ 0 đến 10!", "warning");
+        return;
     }
 
     try {
@@ -558,27 +699,41 @@ async function executePublishResult() {
         };
         await database.ref().update(updateData);
         bootstrap.Modal.getInstance(document.getElementById('publishModal')).hide();
-        alert(`Đã công bố điểm số bài thi [${examId.toUpperCase()}] thành công!`);
+        showToast(`Đã công bố điểm số bài thi [${examId.toUpperCase()}] thành công!`, 'success');
     } catch (error) {
-        alert("Lỗi cập nhật dữ liệu: " + error.message);
+        showToast("Lỗi cập nhật dữ liệu: " + error.message, 'danger');
     }
 }
 
-async function executeResetExamPublishStatus() {
+// THAY THẾ CONFIRM() THU HỒI ĐIỂM SỐ BẰNG BOOTSTRAP MODAL CẢNH BÁO
+function openResetConfirmModal() {
     const username = document.getElementById('publishTargetUsername').value;
     const examId = document.getElementById('publishTargetExamSelect').value;
     const user = localUsersCache[username];
 
-    if (!examId) return alert("Không tìm thấy mã bài thi để thu hồi!");
-    if (!confirm(`Bạn có chắc muốn THU HỒI ĐIỂM bài thi [${examId.toUpperCase()}] của [${user.name || 'N/A'}]?`)) return;
-
-    try {
-        await database.ref(`users/${username}/assignedExams/${examId}/isPublished`).set(false);
-        bootstrap.Modal.getInstance(document.getElementById('publishModal')).hide();
-        alert(`Đã thu hồi điểm thành công!`);
-    } catch (error) {
-        alert("Lỗi: " + error.message);
+    if (!examId) {
+        showToast("Không tìm thấy mã bài thi để thu hồi!", "warning");
+        return;
     }
+
+    document.getElementById('confirmResetBody').innerHTML = `Bạn có chắc muốn <strong>THU HỒI ĐIỂM</strong> bài thi <strong>[${examId.toUpperCase()}]</strong> của thí sinh <strong>[${user.name || 'N/A'}]</strong>? Thao tác này sẽ ẩn toàn bộ điểm và nhận xét khỏi giao diện phía nhân viên.`;
+    
+    const executeBtn = document.getElementById('btnConfirmResetExecute');
+    const newExecuteBtn = executeBtn.cloneNode(true);
+    executeBtn.parentNode.replaceChild(newExecuteBtn, executeBtn);
+
+    newExecuteBtn.addEventListener('click', async () => {
+        try {
+            await database.ref(`users/${username}/assignedExams/${examId}/isPublished`).set(false);
+            bootstrap.Modal.getInstance(document.getElementById('confirmResetModal')).hide();
+            bootstrap.Modal.getInstance(document.getElementById('publishModal')).hide();
+            showToast(`Đã thu hồi tiến trình công bố kết quả thành công!`, 'success');
+        } catch (error) {
+            showToast("Lỗi hệ thống: " + error.message, 'danger');
+        }
+    });
+
+    new bootstrap.Modal(document.getElementById('confirmResetModal')).show();
 }
 
 function filterUserTable() {
