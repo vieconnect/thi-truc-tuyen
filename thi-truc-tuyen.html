@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ thống thi trực tuyến</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="styles.css">
     <style>
         .exam-monitor-box {
@@ -50,9 +51,42 @@
             padding: 10px;
             text-transform: uppercase;
         }
+        /* Style cho bộ đếm thời gian */
+        .timer-box {
+            font-size: 1.25rem;
+            font-weight: bold;
+            padding: 8px 15px;
+            border-radius: 8px;
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            display: inline-flex;
+            align-items: center;
+        }
+        .timer-box.timeout-warning {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+            animation: pulse-border 1s infinite;
+        }
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        /* Khung định vị khu vực chứa các Toast thông báo độc lập */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100000;
+            width: 350px;
+        }
     </style>
 </head>
 <body class="bg-light">
+
+<div id="toastContainer"></div>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
@@ -66,26 +100,30 @@
 
 <div class="container mt-5">
     <div class="row">
-        <div class="col-md-5">
-            <div class="card p-4 shadow-sm mb-4">
-                <h4 class="fw-bold text-primary mb-3">Danh sách Đề Thi được giao</h4>
+        <div class="col-md-8 mx-auto">
+            
+            <div id="examListWrapper" class="card p-4 shadow-sm mb-4">
+                <h4 class="fw-bold text-primary mb-3 text-center">Danh sách Đề Thi được giao</h4>
                 <div id="examListContainer" class="list-group">
                     <div class="text-center p-3 text-muted">Đang tìm kiếm bài thi được chỉ định...</div>
                 </div>
             </div>
-        </div>
-        
-        <div class="col-md-7">
+            
             <div id="quizWorkspace" class="card p-4 shadow-sm" style="display: none;">
-                <h4 id="workspaceTitle" class="fw-bold text-success mb-2">Tên bài thi</h4>
-                <p class="text-muted small">Thời gian: <span id="workspaceTime"></span> | Hạn chót: <span id="workspaceExpired"></span></p>
-                <hr>
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h4 id="workspaceTitle" class="fw-bold text-success mb-1">Tên bài thi</h4>
+                        <p class="text-muted small mb-0">Thời gian quy định: <span id="workspaceTime"></span> | Hạn chót: <span id="workspaceExpired"></span></p>
+                    </div>
+                    <div id="timerContainer" class="timer-box" style="display: none;">
+                        <i class="bi bi-clock me-2"></i><span id="countdownTimer">00:00</span>
+                    </div>
+                </div>
+                <hr class="mt-2">
                 <div id="questionsContainer"></div>
                 <button class="btn btn-success w-100 mt-3" onclick="submitExam()">Nộp bài và lưu kết quả</button>
             </div>
-            <div id="quizNotice" class="text-center p-5 text-muted border bg-white rounded">
-                <h5>Chọn một đề thi ở danh sách bên trái để bắt đầu làm bài.</h5>
-            </div>
+
         </div>
     </div>
 </div>
@@ -101,12 +139,14 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="auth.js"></script>
 
 <script>
 let activeExam = null; 
 let isExamInProgress = false;
 let screenViolationCount = 0;
+let examTimerInterval = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -115,17 +155,73 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name}`;
-    renderAssignedExams();
+    
+    checkRunningExamState();
 });
 
-// SỬA LỖI CHÍNH XÁC: Đọc thông tin đề thi gốc từ nhánh `exams` theo đúng file JSON của bạn
+// Hàm kiểm tra và khôi phục trạng thái làm bài khi Reload (F5)
+async function checkRunningExamState() {
+    const savedExamId = localStorage.getItem('runningExamId');
+    const savedStartTime = localStorage.getItem('runningExamStartTime');
+    const savedDuration = localStorage.getItem('runningExamDuration');
+
+    if (savedExamId && savedStartTime && savedDuration) {
+        try {
+            const examSnapshot = await database.ref(`exams/${savedExamId}`).once('value');
+            const examData = examSnapshot.val();
+
+            if (examData) {
+                activeExam = {
+                    id: savedExamId,
+                    subject: examData.subject,
+                    time: examData.time || "Không giới hạn",
+                    expired: examData.expired,
+                    questions: examData.questions || {}
+                };
+
+                document.getElementById('examListWrapper').style.display = 'none';
+                
+                document.getElementById('cameraMonitorBox').style.display = 'block';
+                document.getElementById('quizWorkspace').style.display = 'block';
+                
+                document.getElementById('workspaceTitle').innerText = activeExam.subject;
+                document.getElementById('workspaceTime').innerText = activeExam.time;
+                document.getElementById('workspaceExpired').innerText = activeExam.expired || "Không giới hạn";
+
+                renderQuestions(activeExam.questions);
+                startScreenWindowTracker();
+
+                const startTimeMs = parseInt(savedStartTime);
+                const durationMinutes = parseInt(savedDuration);
+                const currentTimeMs = Date.now();
+                
+                const timePassedSeconds = Math.floor((currentTimeMs - startTimeMs) / 1000);
+                const totalDurationSeconds = durationMinutes * 60;
+                const remainingSeconds = totalDurationSeconds - timePassedSeconds;
+
+                if (remainingSeconds <= 0) {
+                    // THAY ĐỔI: Chuyển alert thành showToast cảnh báo
+                    showToast("Thời gian làm bài thi đã hết trong lúc tải lại trang! Hệ thống tự động nộp.", "danger");
+                    submitExam();
+                } else {
+                    resumeExamTimer(remainingSeconds);
+                }
+                return;
+            }
+        } catch (e) {
+            console.error("Lỗi đồng bộ F5:", e);
+        }
+    }
+    
+    renderAssignedExams();
+}
+
 async function renderAssignedExams() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const container = document.getElementById('examListContainer');
     container.innerHTML = '';
     
     try {
-        // Lấy danh sách ID đề thi được gán từ users/username/assignedExams
         const userAssignedSnapshot = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
         const userAssignedExams = userAssignedSnapshot.val() || {};
         const examIds = Object.keys(userAssignedExams);
@@ -137,10 +233,8 @@ async function renderAssignedExams() {
 
         for (const examId of examIds) {
             const userExamState = userAssignedExams[examId];
-            // Kiểm tra trạng thái đã hoàn thành làm bài hay chưa
             const hasDone = userExamState && (userExamState.status === "Đã hoàn thành" || userExamState.submitTime !== undefined);
 
-            // ĐÃ SỬA: Thay đổi đường dẫn trỏ chính xác vào nhánh `exams` gốc từ database của bạn
             const globalExamSnapshot = await database.ref(`exams/${examId}`).once('value');
             const globalExamData = globalExamSnapshot.val();
 
@@ -165,26 +259,21 @@ async function renderAssignedExams() {
             `;
             container.insertAdjacentHTML('beforeend', itemHtml);
         }
-        
-        if(container.innerHTML === '') {
-            container.innerHTML = '<div class="text-center p-3 text-danger">Không tìm thấy nội dung tương ứng với mã đề được giao!</div>';
-        }
     } catch (error) {
-        container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi kết nối dữ liệu!</div>';
+        container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi kết nối dữ liệu danh sách đề!</div>';
     }
 }
 
-// SỬA LỖI CHÍNH XÁC: Lấy mảng câu hỏi từ đúng nhánh `exams` khi thí sinh bấm làm bài
 async function startExam(examId) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     
     try {
-        // ĐÃ SỬA: Thay đổi đường dẫn trỏ chính xác vào nhánh `exams` gốc để lấy questions
         const examSnapshot = await database.ref(`exams/${examId}`).once('value');
         const examData = examSnapshot.val();
 
         if (!examData) {
-            alert("Mã đề thi này không tồn tại trên hệ thống!");
+            // THAY ĐỔI: Chuyển alert thành showToast lỗi dạng danger
+            showToast("Mã đề thi này không tồn tại trên hệ thống!", "danger");
             return;
         }
 
@@ -209,8 +298,9 @@ async function startExam(examId) {
         
         await database.ref(`users/${currentUser.username}/violationLogs`).remove();
 
+        document.getElementById('examListWrapper').style.display = 'none';
+        
         document.getElementById('cameraMonitorBox').style.display = 'block';
-        document.getElementById('quizNotice').style.display = 'none';
         document.getElementById('quizWorkspace').style.display = 'block';
         
         document.getElementById('workspaceTitle').innerText = activeExam.subject;
@@ -219,9 +309,89 @@ async function startExam(examId) {
 
         renderQuestions(activeExam.questions);
         startScreenWindowTracker();
+        
+        initExamTimer(activeExam.time, examId);
+        
+        // Bổ sung: Thông báo bắt đầu làm bài thành công
+        showToast(`Đã tải xong đề thi: ${activeExam.subject}. Chúc bạn làm bài tốt!`, "success");
+
     } catch (error) {
-        alert("Lỗi tải đề thi: " + error.message);
+        // THAY ĐỔI: Chuyển alert thành showToast lỗi khởi tạo đề
+        showToast("Lỗi khởi tạo bài thi: " + error.message, "danger");
     }
+}
+
+function initExamTimer(timeString, examId) {
+    if (examTimerInterval) clearInterval(examTimerInterval);
+    
+    const timerContainer = document.getElementById('timerContainer');
+    const countdownTimer = document.getElementById('countdownTimer');
+    timerContainer.classList.remove('timeout-warning');
+    
+    let durationMinutes = parseInt(timeString);
+    if (isNaN(durationMinutes) || durationMinutes <= 0) {
+        timerContainer.style.display = 'none';
+        return;
+    }
+    
+    localStorage.setItem('runningExamId', examId);
+    localStorage.setItem('runningExamStartTime', Date.now().toString());
+    localStorage.setItem('runningExamDuration', durationMinutes.toString());
+    
+    timerContainer.style.display = 'inline-flex';
+    let totalSeconds = durationMinutes * 60;
+    
+    runCountdown(totalSeconds, timerContainer, countdownTimer);
+}
+
+function resumeExamTimer(secondsLeft) {
+    const timerContainer = document.getElementById('timerContainer');
+    const countdownTimer = document.getElementById('countdownTimer');
+    timerContainer.style.display = 'inline-flex';
+    
+    if (secondsLeft <= 60) {
+        timerContainer.classList.add('timeout-warning');
+    }
+    
+    runCountdown(secondsLeft, timerContainer, countdownTimer);
+}
+
+function runCountdown(initialSeconds, container, displayElement) {
+    let secondsTime = initialSeconds;
+    updateTimerDisplay(secondsTime, displayElement);
+    
+    examTimerInterval = setInterval(() => {
+        secondsTime--;
+        updateTimerDisplay(secondsTime, displayElement);
+        
+        if (secondsTime <= 60) {
+            container.classList.add('timeout-warning');
+        }
+        
+        if (secondsTime <= 0) {
+            clearInterval(examTimerInterval);
+            clearRunningExamStorage();
+            // THAY ĐỔI: Chuyển alert thành showToast cảnh báo tự động nộp bài
+            showToast("Đã hết thời gian làm bài! Hệ thống tự động nộp bài thi của bạn.", "warning");
+            submitExam();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay(secondsLeft, element) {
+    let minutes = Math.floor(secondsLeft / 60);
+    let seconds = secondsLeft % 60;
+    
+    minutes = minutes < 10 ? "0" + minutes : minutes;
+    seconds = seconds < 10 ? "0" + seconds : seconds;
+    
+    element.innerText = `${minutes}:${seconds}`;
+}
+
+function clearRunningExamStorage() {
+    localStorage.removeItem('runningExamId');
+    localStorage.removeItem('runningExamStartTime');
+    localStorage.removeItem('runningExamDuration');
 }
 
 function startScreenWindowTracker() {
@@ -235,6 +405,8 @@ function stopScreenWindowTracker() {
     document.removeEventListener('visibilitychange', handleVisibilityViolation);
     window.removeEventListener('blur', handleBlurViolation);
     document.getElementById('cameraMonitorBox').style.display = 'none';
+    
+    if (examTimerInterval) clearInterval(examTimerInterval);
 }
 
 function handleVisibilityViolation() {
@@ -256,6 +428,9 @@ async function processViolationCommit(reason) {
 
     screenViolationCount++;
     const timeStr = new Date().toLocaleString('vi-VN');
+    
+    // Bổ sung: Đưa ra thông báo Toast cảnh báo trực quan cho thí sinh biết khi vi phạm rời tiêu điểm
+    showToast(`Cảnh báo vi phạm: ${reason} (Lần ${screenViolationCount})`, "warning");
 
     try {
         await database.ref(`users/${currentUser.username}/screenViolations`).set(screenViolationCount);
@@ -320,6 +495,7 @@ async function submitExam() {
 
     try {
         stopScreenWindowTracker(); 
+        clearRunningExamStorage();
 
         let totalQuestions = Object.keys(activeExam.questions).length;
         let correctCount = 0;
@@ -347,7 +523,6 @@ async function submitExam() {
         };
 
         await database.ref('users/' + username).update({ examStatus: "Đã nộp bài" });
-        
         await database.ref(`users/${username}/assignedExams/${activeExam.id}`).update(resultPayload);
 
         const histSnap = await database.ref(`users/${username}/historyExams`).once('value');
@@ -366,9 +541,16 @@ async function submitExam() {
         currentHistory.push(newHistoryRecord);
         await database.ref(`users/${username}/historyExams`).set(currentHistory);
         
-        window.location.replace('tien-do-cong-viec.html');
+        // Gọi hàm showToast thành công từ auth.js trước khi chuyển hướng trang
+        showToast("Nộp bài thi thành công! Đang lưu giữ kết quả...", "success");
+        
+        setTimeout(() => {
+            window.location.replace('tien-do-cong-viec.html');
+        }, 1500);
+
     } catch (error) {
-        alert("Lỗi nộp bài thi: " + error.message);
+        // THAY ĐỔI: Chuyển alert lỗi nộp bài sang showToast dạng danger
+        showToast("Lỗi hệ thống khi nộp bài: " + error.message, "danger");
     }
 }
 </script>
