@@ -15,27 +15,70 @@ if (!firebase.apps.length) {
 const database = firebase.database();
 const auth = firebase.auth();
 
+// Biến lưu giữ ID luồng đếm thời gian tự động đăng xuất ngầm (Áp dụng cho mọi trang trong)
+let autoLogoutTimer = null;
 // Bộ nhớ đệm giữ thông tin Google tạm thời khi bổ sung dữ liệu bước cuối
 let tempGoogleUser = null;
 
-// Kiểm tra quyền truy cập bảo mật khi điều hướng
+function cleanUsername(email) {
+    return email ? email.replace(/[@.]/g, '_') : '';
+}
+
+// ===================================================
+// CƠ CHẾ BẢO MẬT & LẮNG NGHE KHÓA REALTIME TOÀN HỆ THỐNG
+// ===================================================
 (function() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const path = window.location.pathname;
     const isLoginPage = path.includes('index.html') || path.endsWith('/') || path === '';
     
+    // 1. Điều hướng bảo vệ tài nguyên cơ bản
     if (!currentUser && !isLoginPage) {
         window.location.replace('index.html');
+        return;
     } else if (currentUser && isLoginPage) {
         if (currentUser.role === 'admin') {
             window.location.replace('admin-users.html');
         } else {
             window.location.replace('dashboard.html');
         }
+        return;
+    }
+
+    // 2. "CẮM MẮT" THEO DÕI REALTIME TRÊN TOÀN BỘ CÁC TRANG TRONG (Dashboard, Tiến độ, Vào thi,...)
+    if (currentUser && !isLoginPage && currentUser.role !== 'admin') {
+        const username = currentUser.username || cleanUsername(currentUser.email);
+        
+        // Luôn luôn kết nối trực tiếp đến nhánh user của thí sinh trên DB để cập nhật trạng thái
+        database.ref('users/' + username).on('value', (snapshot) => {
+            const dbUser = snapshot.val();
+            
+            // Nếu phát hiện trạng thái tài khoản bị chuyển thành Khóa (isLocked === true)
+            if (dbUser && dbUser.isLocked === true) {
+                const lockInfo = dbUser.lockInfo || {};
+                
+                // Bước 1: Xóa localStorage để chặn việc tải lại trang lách luật
+                localStorage.removeItem('currentUser');
+                
+                // Bước 2: Ép hiển thị Modal thông báo kỷ luật chặn tương tác tại trang thí sinh đang đứng
+                showLockModal(lockInfo);
+                
+                // Bước 3: Thiết lập đếm ngược 6 giây tự động trục xuất session khỏi Firebase
+                if (autoLogoutTimer) clearTimeout(autoLogoutTimer);
+                autoLogoutTimer = setTimeout(() => {
+                    executeDirectLogout();
+                }, 6000);
+            }
+        });
     }
 })();
 
-// --- 2. Cơ chế điều khiển SPA Forms ---
+// Lắng nghe sự thay đổi Auth nội bộ của Firebase
+auth.onAuthStateChanged((user) => {
+    // Đã loại bỏ hoàn toàn việc tự ý xóa localStorage.removeItem('currentUser') tại đây để sửa lỗi văng trang trên Tiến độ / Vào thi.
+});
+
+// --- 2. Cơ chế điều khiển Forms nội bộ (Trang index) ---
 function switchForm(formId) {
     const forms = ['loginSection', 'registerSection', 'forgotSection', 'googleUpdateSection'];
     forms.forEach(id => {
@@ -44,17 +87,13 @@ function switchForm(formId) {
     });
 }
 
-function cleanUsername(email) {
-    return email.replace(/[@.]/g, '_');
-}
+// --- 3. Các chức năng Authentication nghiệp vụ ---
 
-// --- 3. Các chức năng Authentication ---
-
-// Đăng ký tài khoản mới (Email truyền thống)
+// Đăng ký tài khoản Email
 async function registerWithEmail(email, password, fullName, userClass, birthday, age, position) {
     if (!email || !password || !fullName) return showToast("Vui lòng điền đầy đủ thông tin bắt buộc!" , "danger");
     try {
-        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        await auth.createUserWithEmailAndPassword(email, password);
         const username = cleanUsername(email);
 
         const userData = {
@@ -81,32 +120,57 @@ async function registerWithEmail(email, password, fullName, userClass, birthday,
     }
 }
 
-// Đăng nhập hệ thống (Phân quyền Admin / User)
+// Đăng nhập tài khoản bằng Email & Mật khẩu
 async function loginWithEmail(email, password) {
+    if (!email) return showToast("Vui lòng nhập Email tài khoản!", "danger");
+
+    const username = cleanUsername(email);
+    localStorage.removeItem('currentUser'); // Clear cache trước khi login mới
+
     try {
-        const username = cleanUsername(email);
+        await auth.signInWithEmailAndPassword(email, password);
+
         const snapshot = await database.ref('users/' + username).once('value');
         const dbUser = snapshot.val();
 
+        // Kiểm tra nếu tài khoản đang bị khóa từ trước
         if (dbUser && dbUser.isLocked && dbUser.role !== 'admin') {
-            showLockModal(dbUser.lockInfo);
-            return;
+            const lockInfo = dbUser.lockInfo || {};
+            localStorage.removeItem('currentUser');
+            showLockModal(lockInfo); 
+            await auth.signOut();
+            return; 
         }
 
-        await auth.signInWithEmailAndPassword(email, password);
+        // Đăng nhập thành công hoàn toàn
         localStorage.setItem('currentUser', JSON.stringify(dbUser));
-        
         if (dbUser && dbUser.role === 'admin') {
             window.location.replace('admin-users.html');
         } else {
             window.location.replace('dashboard.html');
         }
+
     } catch (error) {
-        showToast("Tài khoản hoặc mật khẩu không chính xác!" , "danger");
+        // Quét DB ngầm phòng trường hợp sai mật khẩu nhưng tài khoản thực tế đã bị khóa sẵn
+        try {
+            const snapshot = await database.ref('users/' + username).once('value');
+            const dbUser = snapshot.val();
+
+            if (dbUser && dbUser.isLocked && dbUser.role !== 'admin') {
+                const lockInfo = dbUser.lockInfo || {};
+                localStorage.removeItem('currentUser');
+                showLockModal(lockInfo); 
+                await auth.signOut().catch(() => {});
+                return; 
+            }
+        } catch (dbErr) {
+            console.error(dbErr);
+        }
+        showToast("Tài khoản hoặc mật khẩu không chính xác!", "danger");
     }
 }
 
-// Khôi phục mật khẩu
+// Khôi phục mật khẩu tài khoản
 async function resetPassword(email) {
     if (!email) return showToast("Vui lòng nhập Email cần khôi phục!" , "danger");
     try {
@@ -118,9 +182,11 @@ async function resetPassword(email) {
     }
 }
 
-// Đăng nhập bằng Google
+// Đăng nhập bằng tài khoản Google
 async function loginWithProvider(providerType) {
     let provider = new firebase.auth.GoogleAuthProvider();
+    localStorage.removeItem('currentUser');
+    
     try {
         const result = await auth.signInWithPopup(provider);
         const user = result.user;
@@ -130,12 +196,13 @@ async function loginWithProvider(providerType) {
         let dbUser = snapshot.val();
 
         if (dbUser && dbUser.isLocked && dbUser.role !== 'admin') {
-            showLockModal(dbUser.lockInfo);
-            auth.signOut();
+            const lockInfo = dbUser.lockInfo || {};
+            localStorage.removeItem('currentUser');
+            showLockModal(lockInfo);
+            await auth.signOut();
             return;
         }
 
-        // Trường hợp tài khoản mới tinh từ Google chưa có trong hệ thống Realtime DB
         if (!dbUser) {
             tempGoogleUser = {
                 username: username,
@@ -147,12 +214,10 @@ async function loginWithProvider(providerType) {
                 exams: {},
                 examStatus: "Chưa bắt đầu"
             };
-            // Chuyển sang form yêu cầu cập nhật nốt thông tin phụ
             switchForm('googleUpdateSection');
             return;
         }
 
-        // Nếu đã có thông tin rồi thì tiến hành đăng nhập trực tiếp luôn
         localStorage.setItem('currentUser', JSON.stringify(dbUser));
         if (dbUser.role === 'admin') {
             window.location.replace('admin-users.html');
@@ -164,7 +229,7 @@ async function loginWithProvider(providerType) {
     }
 }
 
-// Hàm bổ sung dữ liệu cho thí sinh đăng nhập bằng Google lần đầu
+// Cập nhật thông tin bổ sung cho tài khoản Google lần đầu đăng nhập
 async function handleGoogleAdditionalData() {
     if (!tempGoogleUser) return;
     
@@ -177,7 +242,6 @@ async function handleGoogleAdditionalData() {
         return showToast("Vui lòng nhập đầy đủ Lớp, Ngày sinh và Tuổi của bạn!","danger");
     }
 
-    // Gộp dữ liệu nhập thêm vào cấu trúc gốc
     tempGoogleUser.class = uClass;
     tempGoogleUser.position = uPosition;
     tempGoogleUser.birthday = uBirthday;
@@ -187,29 +251,140 @@ async function handleGoogleAdditionalData() {
         await database.ref('users/' + tempGoogleUser.username).set(tempGoogleUser);
         localStorage.setItem('currentUser', JSON.stringify(tempGoogleUser));
         showToast("Cập nhật thông tin tài khoản thành công!","success");
-        
         window.location.replace('dashboard.html');
     } catch(err) {
         showToast("Lỗi lưu dữ liệu: " + err.message , "danger");
     }
 }
 
+// --- 4. Khởi tạo giao diện Modal thông báo Khóa độc lập ---
 function showLockModal(lockInfo) {
-    if (document.getElementById('lockAccountModal')) {
-        document.getElementById('displayName').innerText = lockInfo?.name || 'Tài khoản';
-        document.getElementById('displayLockReason').innerText = lockInfo?.reason || 'Vi phạm nội quy';
-        document.getElementById('displayLockTime').innerText = `Từ: ${lockInfo?.startTime || '---'} | Thời hạn: ${lockInfo?.duration || '---'}`;
-        new bootstrap.Modal(document.getElementById('lockAccountModal')).show();
+    const path = window.location.pathname;
+    const isLoginPage = path.includes('index.html') || path.endsWith('/') || path === '';
+
+    if (isLoginPage) {
+        // MODAL HIỂN THỊ TẠI TRANG ĐĂNG NHẬP INDEX.HTML
+        let loginLockModalEl = document.getElementById('indexPageLockModal');
+        if (!loginLockModalEl) {
+            const indexModalHtml = `
+                <div class="modal fade" id="indexPageLockModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-danger shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                            <div class="modal-header bg-danger text-white py-3">
+                                <h5 class="modal-title fw-bold d-flex align-items-center mb-0">
+                                    <i class="bi bi-shield-lock-fill me-2 fs-4"></i> ĐĂNG NHẬP THẤT BẠI
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body py-4 text-center">
+                                <div class="text-danger mb-3">
+                                    <i class="bi bi-person-x-fill" style="font-size: 3.5rem;"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Tài khoản hiện đang bị khóa</h5>
+                                <p class="text-muted small px-3 mb-3">Hệ thống từ chối quyền truy cập do tài khoản này đang chịu hình thức kỷ luật từ phía Hội đồng thi.</p>
+                                
+                                <div class="bg-light p-3 rounded border text-start mb-4 mx-2 small">
+                                    <p class="mb-1 text-secondary"><strong>Mã biên bản:</strong> <span id="idxLockId" class="text-dark fw-bold">---</span></p>
+                                    <p class="mb-1 text-secondary"><strong>Thời gian khóa:</strong> <span id="idxLockTime" class="text-dark">---</span></p>
+                                    <p class="mb-1 text-secondary"><strong>Thời hạn phạt:</strong> <span id="idxLockDuration" class="text-primary fw-bold">---</span></p>
+                                    <p class="mb-0 text-secondary"><strong>Lý do xử lý:</strong> <span id="idxLockReason" class="text-danger fw-bold">---</span></p>
+                                </div>
+                                
+                                <button type="button" class="btn btn-secondary w-100 fw-bold py-2 shadow-sm" data-bs-dismiss="modal">
+                                    <i class="bi bi-check-lg me-2"></i> Đã hiểu
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', indexModalHtml);
+            loginLockModalEl = document.getElementById('indexPageLockModal');
+        }
+
+        document.getElementById('idxLockId').innerText = lockInfo?.id || 'KỶ LUẬT ĐĂNG NHẬP';
+        document.getElementById('idxLockTime').innerText = lockInfo?.startTime || 'Vừa mới đây';
+        document.getElementById('idxLockDuration').innerText = lockInfo?.duration || 'Vô thời hạn';
+        document.getElementById('idxLockReason').innerText = lockInfo?.reason || 'Vi phạm nội quy phòng thi';
+
+        const bsIndexModal = new bootstrap.Modal(loginLockModalEl);
+        bsIndexModal.show();
+
     } else {
-        showToast("Tài khoản [${lockInfo?.sbd}] đang bị khóa!\nLý do: ${lockInfo?.reason}\nThời gian: ${lockInfo?.duration}","danger");
+        // MODAL ÉP HIỂN THỊ TẠI TẤT CẢ CÁC TRANG TRONG TRUY CẬP (dashboard, thi-truc-tuyen, tien-do-cong-viec,...)
+        let lockModalEl = document.getElementById('globalSystemLockModal');
+        if (!lockModalEl) {
+            const modalHtml = `
+                <div class="modal fade" id="globalSystemLockModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" style="z-index: 100000 !important;">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-danger shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                            <div class="modal-header bg-danger text-white py-3">
+                                <h5 class="modal-title fw-bold d-flex align-items-center mb-0">
+                                    <i class="bi bi-shield-lock-fill me-2 fs-4"></i> TÀI KHOẢN BỊ KHÓA TRUY CẬP
+                                </h5>
+                            </div>
+                            <div class="modal-body py-4 text-center">
+                                <div class="text-danger mb-3">
+                                    <i class="bi bi-exclamation-triangle-fill" style="font-size: 3.5rem;"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Quyền truy cập của bạn đã bị đình chỉ</h5>
+                                <p class="text-muted small px-3 mb-3">Hệ thống phát hiện tài khoản này vi phạm quy chế nghiêm trọng hoặc đã bị Giám thị xử lý trực tiếp.</p>
+                                
+                                <div class="bg-light p-3 rounded border text-start mb-3 mx-2 small">
+                                    <p class="mb-1 text-secondary"><strong>Mã biên bản:</strong> <span id="modalLockId" class="text-dark fw-bold">---</span></p>
+                                    <p class="mb-1 text-secondary"><strong>Thời gian khóa:</strong> <span id="modalLockTime" class="text-dark">---</span></p>
+                                    <p class="mb-1 text-secondary"><strong>Thời hạn phạt:</strong> <span id="modalLockDuration" class="text-primary fw-bold">---</span></p>
+                                    <p class="mb-0 text-secondary"><strong>Lý do xử lý:</strong> <span id="modalLockReason" class="text-danger fw-bold">---</span></p>
+                                </div>
+                                
+                                <div class="d-flex align-items-center justify-content-center text-muted mb-3 fs-7" style="font-size: 0.85rem; font-style: italic;">
+                                    <div class="spinner-border spinner-border-sm text-secondary me-2" role="status" style="width: 0.9rem; height: 0.9rem;"></div>
+                                    <span>Hệ thống tự động chuyển hướng đăng xuất sau <strong class="text-danger">6 giây</strong>...</span>
+                                </div>
+                                
+                                <button type="button" class="btn btn-danger w-100 fw-bold py-2 shadow-sm" onclick="executeDirectLogout()">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất ngay lập tức
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            lockModalEl = document.getElementById('globalSystemLockModal');
+        }
+
+        document.getElementById('modalLockId').innerText = lockInfo?.id || 'KỶ LUẬT TỰ ĐỘNG';
+        document.getElementById('modalLockTime').innerText = lockInfo?.startTime || 'Vừa mới đây';
+        document.getElementById('modalLockDuration').innerText = lockInfo?.duration || 'Vô thời hạn';
+        document.getElementById('modalLockReason').innerText = lockInfo?.reason || 'Vi phạm nội quy phòng thi';
+        
+        const bsLockModal = new bootstrap.Modal(lockModalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+        bsLockModal.show();
     }
 }
 
-function logout() {
+// Thực thi hủy bỏ kết nối phiên đăng nhập trực tiếp
+function executeDirectLogout() {
+    if (autoLogoutTimer) clearTimeout(autoLogoutTimer);
     localStorage.removeItem('currentUser');
-    window.location.replace('index.html');
+    
+    auth.signOut().then(() => {
+        const path = window.location.pathname;
+        if (!path.includes('index.html') && path !== '/' && path !== '') {
+            window.location.replace('index.html');
+        }
+    }).catch(err => {
+        window.location.replace('index.html');
+    });
 }
 
+function logout() {
+    executeDirectLogout();
+}
+
+// --- 5. Hàm Toast thông báo trạng thái ---
 function showToast(message, type = 'success') {
     const toastContainer = document.getElementById('toastContainer');
     if (!toastContainer) return;
