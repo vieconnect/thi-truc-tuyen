@@ -245,6 +245,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
+    // ĐIỀU HƯỚNG NẾU LÀ ADMIN TRUY CẬP TRANG THÍ SINH
+    if (currentUser.role && currentUser.role.toLowerCase() === 'admin') {
+        window.location.replace('admin-users.html');
+        return;
+    }
+    
     // Đổ dữ liệu vào form thông tin cá nhân
     if(document.getElementById('editName')) document.getElementById('editName').value = currentUser.name || '';
     if(document.getElementById('editSBD')) document.getElementById('editSBD').value = currentUser.sbd || '';
