@@ -694,7 +694,7 @@ function openStatusModal(username) {
                                     <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-square"></i> Tổng quan kết quả</h6>
                                     <p class="mb-1"><strong>Trạng thái:</strong> <span class="badge ${isDone ? 'bg-success' : 'bg-secondary'}">${isDone ? 'Đã nộp bài' : 'Chưa thực hiện'}</span></p>
                                     <p class="mb-1"><strong>Nộp bài lúc:</strong> <span class="text-muted">${exam.submitTime || '---'}</span></p>
-                                    <p class="mb-1"><strong>Điểm máy tự chấm:</strong> <span class="badge bg-dark fs-6">${exam.autoScore ?? 'N/A'}</span></p>
+                                    <p class="mb-1"><strong>Điểm máy tự chấm:</strong> <span class="badge bg-dark fs-6">${exam.autoScore ?? 'Chưa có điểm'}</span></p>
                                     <p class="mb-1"><strong>Điểm phê duyệt cuối:</strong> <span class="badge bg-success fs-6">${exam.finalScore ?? 'Chưa duyệt'}</span></p>
                                     <p class="mb-1"><strong>Nhận xét:</strong> <span class="text-muted italic">${exam.adminComment || 'Chưa ghi nhận'}</span></p>
                                     
