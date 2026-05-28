@@ -84,6 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.replace('index.html');
         return;
     }
+
+    // ĐIỀU HƯỚNG NẾU LÀ ADMIN TRUY CẬP TRANG THÍ SINH
+    if (currentUser.role && currentUser.role.toLowerCase() === 'admin') {
+        window.location.replace('admin-users.html');
+        return;
+    }
+
     document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name}`;
     checkRunningExamState();
 });
