@@ -78,15 +78,6 @@ let isExamInProgress = false;
 let screenViolationCount = 0;
 let examTimerInterval = null;
 
-// Hàm định dạng và làm sạch Email toàn cục để truy cập chuẩn nhánh cơ sở dữ liệu
-function getCleanUsername() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) return '';
-    if (currentUser.username) return currentUser.username;
-    const email = currentUser.email || "";
-    return email.replace(/[@.]/g, '_');
-}
-
 document.addEventListener('DOMContentLoaded', () => {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) {
@@ -156,11 +147,11 @@ async function checkRunningExamState() {
 }
 
 async function renderAssignedExams() {
-    const userKey = getCleanUsername();
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const container = document.getElementById('examListContainer');
     container.innerHTML = '';
     try {
-        const userAssignedSnapshot = await database.ref(`users/${userKey}/assignedExams`).once('value');
+        const userAssignedSnapshot = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
         const userAssignedExams = userAssignedSnapshot.val() || {};
         const examIds = Object.keys(userAssignedExams);
 
@@ -190,14 +181,13 @@ async function renderAssignedExams() {
             `);
         }
     } catch (error) {
-        console.error(error);
         container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi kết nối dữ liệu!</div>';
     }
 }
 
 async function startExam(examId) {
-    const userKey = getCleanUsername();
-    const userSnapshot = await database.ref(`users/${userKey}`).once('value');
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const userSnapshot = await database.ref(`users/${currentUser.username}`).once('value');
     const userData = userSnapshot.val();
     const isLocked = userData && userData.isLocked === true;
 
@@ -292,50 +282,104 @@ function handleBlurViolation() { if (isExamInProgress) processViolationCommit("T
 
 async function processViolationCommit(reason) {
     if (!activeExam) return;
-    const userKey = getCleanUsername();
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     screenViolationCount++;
     showToast(`Cảnh báo vi phạm: ${reason}`, "warning");
-    await database.ref(`users/${userKey}/screenViolations`).set(screenViolationCount);
+    await database.ref(`users/${currentUser.username}/screenViolations`).set(screenViolationCount);
 }
 
 function renderQuestions(questions) {
     const container = document.getElementById('questionsContainer');
     container.innerHTML = '';
+    
     Object.keys(questions).forEach((qId, idx) => {
-        let optionsHtml = '';
-        Object.keys(questions[qId].options).forEach(optKey => {
-            optionsHtml += `<div class="form-check mb-2"><input class="form-check-input" type="radio" name="${qId}" value="${optKey}"><label class="form-check-label">${optKey}. ${questions[qId].options[optKey]}</label></div>`;
-        });
-        container.insertAdjacentHTML('beforeend', `<div class="mb-4 p-3 border-bottom rounded bg-white"><p class="fw-bold">Câu ${idx+1}: ${questions[qId].title}</p>${optionsHtml}</div>`);
+        const question = questions[qId];
+        let answerAreaHtml = '';
+
+        if (question.type === 'tu_luan' || !question.options) {
+            answerAreaHtml = `
+                <div class="mt-2">
+                    <label class="form-label small fw-semibold text-primary"><i class="bi bi-pencil-square me-1"></i> Nhập câu trả lời tự luận của bạn:</label>
+                    <textarea class="form-control essay-answer-input" name="${qId}" rows="4" placeholder="Gõ nội dung bài làm tự luận tại đây..."></textarea>
+                </div>
+            `;
+        } else {
+            let optionsHtml = '';
+            if (question.options) {
+                Object.keys(question.options).forEach(optKey => {
+                    optionsHtml += `
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="${qId}" value="${optKey}">
+                            <label class="form-check-label">${optKey}. ${question.options[optKey]}</label>
+                        </div>`;
+                });
+            }
+            answerAreaHtml = optionsHtml;
+        }
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="mb-4 p-3 border-bottom rounded bg-white shadow-sm">
+                <p class="fw-bold mb-2">
+                    <span class="badge ${question.type === 'tu_luan' ? 'bg-warning text-dark' : 'bg-primary'} me-2">
+                        ${question.type === 'tu_luan' ? 'Tự luận' : 'Trắc nghiệm'}
+                    </span>
+                    Câu ${idx + 1}: ${question.title}
+                </p>
+                ${answerAreaHtml}
+            </div>
+        `);
     });
 }
 
 async function submitExam() {
     if (!activeExam) return;
-    const userKey = getCleanUsername();
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const username = currentUser.username;
     
     let selectedAnswers = {};
+
+    // 1. Thu thập đáp án trắc nghiệm
     document.querySelectorAll('#questionsContainer input[type="radio"]:checked').forEach(elem => {
         selectedAnswers[elem.name] = elem.value;
     });
 
+    // 2. Thu thập đáp án tự luận/điền số
+    document.querySelectorAll('#questionsContainer .essay-answer-input').forEach(elem => {
+        selectedAnswers[elem.name] = elem.value.trim();
+    });
+
+    // 3. THUẬT TOÁN CHẤM ĐIỂM TỰ ĐỘNG CẢI TIẾN (FIX LỖI ĐIỂM 0)
     let totalQuestions = Object.keys(activeExam.questions).length;
     let correctCount = 0;
+
     if (totalQuestions > 0) {
         for (let qId in activeExam.questions) {
-            if (selectedAnswers[qId] && selectedAnswers[qId] === activeExam.questions[qId].correctAnswer) {
-                correctCount++;
+            const q = activeExam.questions[qId];
+            
+            // Lấy đáp án của thí sinh và đáp án đúng trong hệ thống
+            const studentAns = String(selectedAnswers[qId] || '').trim().toLowerCase();
+            const correctAns = String(q.correctAnswer || '').trim().toLowerCase();
+
+            // CHẤM ĐIỂM LINH HOẠT:
+            // Nếu là Trắc nghiệm: Khớp hoàn toàn đáp án (A, B, C, D)
+            // Nếu là Tự luận ngắn/Điền số: Nếu admin có cấu hình đáp án đúng (ví dụ: 1234), máy tự chấm luôn
+            if (studentAns !== "" && correctAns !== "") {
+                if (studentAns === correctAns) {
+                    correctCount++;
+                }
             }
         }
     }
+
+    // Tính điểm trên thang điểm 10
     let calculatedScore = totalQuestions > 0 ? (correctCount / totalQuestions) * 10 : 0;
-    calculatedScore = Math.round(calculatedScore * 100) / 100;
+    calculatedScore = Math.round(calculatedScore * 100) / 100; // Làm tròn 2 chữ số thập phân
 
     const resultPayload = {
         status: "Đã hoàn thành",
         submitTime: new Date().toLocaleString('vi-VN'),
         autoScore: calculatedScore,
-        finalScore: calculatedScore,
+        finalScore: calculatedScore, // Điểm số tạm tính trước khi Admin chấm tay lại câu tự luận dài
         selectedAnswers: selectedAnswers, 
         screenViolations: screenViolationCount,
         isPublished: false 
@@ -345,23 +389,24 @@ async function submitExam() {
         stopScreenWindowTracker(); 
         clearRunningExamStorage();
 
-        // Đồng bộ chuẩn hóa ghi dữ liệu theo userKey
-        await database.ref(`users/${userKey}/assignedExams/${activeExam.id}`).update(resultPayload);
-        await database.ref('users/' + userKey).update({ examStatus: "Đã nộp bài" });
+        // Đồng bộ lên Firebase assignedExams
+        await database.ref(`users/${username}/assignedExams/${activeExam.id}`).update(resultPayload);
+        await database.ref('users/' + username).update({ examStatus: "Đã nộp bài" });
 
-        const histSnap = await database.ref(`users/${userKey}/historyExams`).once('value');
+        // Đồng bộ lên Firebase historyExams để hiển thị ở danh sách lịch sử
+        const histSnap = await database.ref(`users/${username}/historyExams`).once('value');
         let currentHistory = histSnap.val() || [];
         if (!Array.isArray(currentHistory)) currentHistory = Object.values(currentHistory);
         
         const newHistoryRecord = {
-            ...resultPayload,
+            ...resultPayload, 
             subject: activeExam.subject,
             examId: activeExam.id,
             stt: currentHistory.length + 1
         };
         
         currentHistory.push(newHistoryRecord);
-        await database.ref(`users/${userKey}/historyExams`).set(currentHistory);
+        await database.ref(`users/${username}/historyExams`).set(currentHistory);
         
         showToast("Nộp bài thi thành công!", "success");
         setTimeout(() => {
