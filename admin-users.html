@@ -70,7 +70,6 @@
     </style>
 </head>
 <body class="bg-light">
-
 <div id="toastContainer"></div>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
@@ -222,7 +221,7 @@
                 Bạn có chắc chắn muốn hủy bỏ trạng thái công bố và thu hồi điểm số của thí sinh này?
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-target="#publishModal" data-bs-toggle="modal">Hủy bỏ</button>
                 <button type="button" class="btn btn-sm btn-danger px-3" id="btnConfirmResetExecute">Đồng ý thu hồi</button>
             </div>
         </div>
@@ -287,7 +286,7 @@
                 </div>
             </div>
             <div class="modal-footer d-flex justify-content-between">
-                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="openResetConfirmModal()">
+                <button type="button" class="btn btn-sm btn-outline-danger fw-bold" onclick="openResetConfirmModal()" data-bs-target="#confirmResetModal" data-bs-toggle="modal">
                     <i class="bi bi-arrow-counterclockwise"></i> Xóa tiến trình (Thu hồi điểm)
                 </button>
                 <div>
@@ -309,52 +308,6 @@
 <script>
 let localUsersCache = {};
 let isModelsLoaded = false;
-
-// HÀM KHỞI TẠO VÀ HIỂN THỊ TOAST ĐỘNG THAY THẾ CƠ CHẾ ALERT() CŨ
-function showToast(message, type = 'info') {
-    const toastContainer = document.getElementById('toastContainer');
-    if (!toastContainer) return;
-
-    const toastId = 'toast_' + Date.now() + Math.floor(Math.random() * 100);
-    let bgColor = 'bg-dark';
-    let icon = '<i class="bi bi-info-circle-fill me-2 fs-5"></i>';
-
-    if (type === 'success') {
-        bgColor = 'bg-success';
-        icon = '<i class="bi bi-check-circle-fill me-2 fs-5"></i>';
-    } else if (type === 'danger' || type === 'error') {
-        bgColor = 'bg-danger';
-        icon = '<i class="bi bi-x-circle-fill me-2 fs-5"></i>';
-    } else if (type === 'warning') {
-        bgColor = 'bg-warning text-dark';
-        icon = '<i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>';
-    }
-
-    const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 shadow mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
-            <div class="d-flex">
-                <div class="toast-body d-flex align-items-center">
-                    ${icon}
-                    <span>${message}</span>
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="progress">
-                <div class="progress-bar" role="progressbar" style="width: 100%;"></div>
-            </div>
-        </div>
-    `;
-
-    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-    const toastElement = document.getElementById(toastId);
-    const bsToast = new bootstrap.Toast(toastElement);
-    bsToast.show();
-
-    // Tự động giải phóng DOM khi ẩn toast xong (Thêm hiệu ứng slide out mượt mà)
-    toastElement.addEventListener('hidden.bs.toast', () => {
-        toastElement.remove();
-    });
-}
 
 document.addEventListener('DOMContentLoaded', () => {
     loadRealtimeUsers();
@@ -509,6 +462,41 @@ function openStatusModal(username) {
     const container = document.getElementById('statusDetailsContent');
     let examsHtml = `<p class="text-muted">Chưa thực hiện bài thi nào trong hệ thống.</p>`;
     
+    // 1. XỬ LÝ TRÍCH XUẤT VI PHẠM TỪ NHÁNH CẤP CAO (user.violationLogs) THEO ẢNH DATABASE
+    let globalLogsHtml = '<p class="text-success small mb-0"><i class="bi bi-check-circle-fill"></i> Không ghi nhận vi phạm chống gian lận nào từ hệ thống.</p>';
+    let totalViolationsCount = 0;
+    
+    if (user && user.violationLogs && typeof user.violationLogs === 'object') {
+        const logsArr = Object.values(user.violationLogs);
+        totalViolationsCount = logsArr.length;
+        
+        if (totalViolationsCount > 0) {
+            globalLogsHtml = `<div class="log-timeline mt-2">`;
+            logsArr.forEach((log) => {
+                let imgHtml = '';
+                if (log.evidence && log.evidence !== 'No-Image') {
+                    imgHtml = `<div class="mt-2"><img src="${log.evidence}" class="img-thumbnail" alt="Bằng chứng AI"></div>`;
+                }
+                
+                // Lấy số lần từ violationIndex trong ảnh, nếu không có thì tự tăng dần
+                const idxDisplay = log.violationIndex || (logsArr.indexOf(log) + 1);
+                const violationReason = log.reason || "Phát hiện vi phạm quy chế";
+                const violationTime = log.time || '';
+
+                globalLogsHtml += `
+                    <div class="log-item p-2 bg-light rounded mb-2" style="border-left: 3px solid #dc3545; padding-left: 10px;">
+                        <div class="d-flex justify-content-between fw-bold text-danger small">
+                            <span>⚠️ Lần ${idxDisplay}: ${violationReason}</span>
+                            <span class="text-muted"><i class="bi bi-clock"></i> ${violationTime}</span>
+                        </div>
+                        ${imgHtml}
+                    </div>`;
+            });
+            globalLogsHtml += `</div>`;
+        }
+    }
+    
+    // 2. XỬ LÝ HIỂN THỊ TIẾN TRÌNH THEO TỪNG ĐỀ THI
     if (user.assignedExams && Object.keys(user.assignedExams).length > 0) {
         examsHtml = `<div class="accordion" id="examsAccordion">`;
         let index = 0;
@@ -518,7 +506,7 @@ function openStatusModal(username) {
             index++;
             
             let answersContentHtml = '';
-            if (isDone && exam.selectedAnswers && typeof exam.selectedAnswers === 'object') {
+            if (exam && exam.selectedAnswers && typeof exam.selectedAnswers === 'object') {
                 answersContentHtml = '<ul class="list-group list-group-flush shadow-sm rounded border">';
                 Object.keys(exam.selectedAnswers).forEach(qKey => {
                     answersContentHtml += `
@@ -532,29 +520,12 @@ function openStatusModal(username) {
                 answersContentHtml = `<span class="text-muted italic">Thí sinh chưa nộp câu trả lời cho đề này</span>`;
             }
 
-            let logsContentHtml = '<p class="text-success small mb-0"><i class="bi bi-check-circle-fill"></i> Không ghi nhận vi phạm chống gian lận nào trong ca thi này.</p>';
-            let totalViolationsCount = 0;
-            
-            if (isDone && exam.logs && typeof exam.logs === 'object') {
-                const logsArr = Object.values(exam.logs);
-                totalViolationsCount = logsArr.length;
-                
-                logsContentHtml = `<div class="log-timeline mt-2">`;
-                logsArr.forEach(log => {
-                    let imgHtml = '';
-                    if (log.evidence && log.evidence !== 'No-Image') {
-                        imgHtml = `<div class="mt-2"><img src="${log.evidence}" class="img-thumbnail" alt="Bằng chứng AI"></div>`;
-                    }
-                    logsContentHtml += `
-                        <div class="log-item p-2 bg-light rounded">
-                            <div class="d-flex justify-content-between fw-bold text-danger small">
-                                <span>⚠️ ${log.reason}</span>
-                                <span class="text-muted">${log.time || ''}</span>
-                            </div>
-                            ${imgHtml}
-                        </div>`;
-                });
-                logsContentHtml += `</div>`;
+            // Đồng bộ nhãn số lần vi phạm lên thanh tiêu đề đề thi
+            let violationBadge = `<span class="ms-3 badge bg-secondary">Chưa làm</span>`;
+            if (totalViolationsCount > 0) {
+                violationBadge = `<span class="ms-3 badge bg-danger">${totalViolationsCount} lần vi phạm</span>`;
+            } else if (isDone) {
+                violationBadge = `<span class="ms-3 badge bg-success">0 lần vi phạm</span>`;
             }
 
             examsHtml += `
@@ -562,7 +533,7 @@ function openStatusModal(username) {
                     <h2 class="accordion-header" id="heading_${examId}">
                         <button class="accordion-button ${index === 1 ? '' : 'collapsed'} fw-bold text-dark bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_${examId}">
                             <i class="bi bi-journal-text me-2 text-primary"></i> ĐỀ THI: ${examId.toUpperCase()} 
-                            <span class="ms-3 badge ${isDone ? 'bg-danger' : 'bg-secondary'}">${isDone ? totalViolationsCount + ' lần vi phạm' : 'Chưa làm'}</span>
+                            ${violationBadge}
                         </button>
                     </h2>
                     <div id="collapse_${examId}" class="accordion-collapse collapse ${index === 1 ? 'show' : ''}" data-bs-parent="#examsAccordion">
@@ -583,7 +554,7 @@ function openStatusModal(username) {
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="fw-bold text-danger mb-2"><i class="bi bi-shield-exclamation"></i> Chi tiết vi phạm từ AI & Hệ thống</h6>
-                                    ${isDone ? logsContentHtml : '<p class="text-muted small">Không có dữ liệu do chưa thực hiện bài thi.</p>'}
+                                    ${globalLogsHtml}
                                 </div>
                             </div>
                         </div>
@@ -593,6 +564,7 @@ function openStatusModal(username) {
         examsHtml += `</div>`;
     }
 
+    // 3. HIỂN THỊ KHUNG THÔNG TIN CHUNG BAN ĐẦU CỦA THÍ SINH
     container.innerHTML = `
         <div class="row mb-3 bg-light p-3 rounded mx-1 border">
             <div class="col-md-6 border-end">
@@ -716,7 +688,7 @@ function openResetConfirmModal() {
         return;
     }
 
-    document.getElementById('confirmResetBody').innerHTML = `Bạn có chắc muốn <strong>THU HỒI ĐIỂM</strong> bài thi <strong>[${examId.toUpperCase()}]</strong> của thí sinh <strong>[${user.name || 'N/A'}]</strong>? Thao tác này sẽ ẩn toàn bộ điểm và nhận xét khỏi giao diện phía nhân viên.`;
+    document.getElementById('confirmResetBody').innerHTML = `Bạn có chắc muốn <strong>THU HỒI ĐIỂM</strong> bài thi <strong>[${examId.toUpperCase()}]</strong> của thí sinh <strong>[${user.name || 'N/A'}]</strong>? Thao tác này sẽ ẩn toàn bộ điểm và nhận xét của thí sinh.`;
     
     const executeBtn = document.getElementById('btnConfirmResetExecute');
     const newExecuteBtn = executeBtn.cloneNode(true);
@@ -732,8 +704,6 @@ function openResetConfirmModal() {
             showToast("Lỗi hệ thống: " + error.message, 'danger');
         }
     });
-
-    new bootstrap.Modal(document.getElementById('confirmResetModal')).show();
 }
 
 function filterUserTable() {
