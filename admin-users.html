@@ -298,6 +298,28 @@
     </div>
 </div>
 
+<div class="modal fade" id="giaoDeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Giao đề cho: <span id="targetStudentName" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Chọn bài thi:</label>
+                    <select id="selectExam" class="form-select"></select>
+                </div>
+                <button class="btn btn-primary w-100" onclick="assignExamToStudent()">Giao đề này</button>
+                
+                <hr>
+                <h6>Danh sách bài đã giao:</h6>
+                <ul id="assignedExamsList" class="list-group mt-2"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -308,6 +330,65 @@
 <script>
 let localUsersCache = {};
 let isModelsLoaded = false;
+let currentStudentUsername = ""; 
+
+// 1. Hàm mở Modal và load dữ liệu
+async function openGiaoDeModal(username) {
+    currentStudentUsername = username;
+    document.getElementById('targetStudentName').innerText = username;
+    
+    // Lấy danh sách đề từ nhánh 'exams'
+    const examsSnap = await database.ref('exams').once('value');
+    const select = document.getElementById('selectExam');
+    select.innerHTML = '<option value="">-- Chọn bài thi --</option>';
+    
+    examsSnap.forEach(snap => {
+        const examId = snap.key;
+        const examData = snap.val();
+        select.innerHTML += `<option value="${examId}">${examId} - ${examData.subject || 'Không tên'}</option>`;
+    });
+
+    renderAssignedList();
+    new bootstrap.Modal(document.getElementById('giaoDeModal')).show();
+}
+
+// 2. Render danh sách bài đã giao của thí sinh đó
+async function renderAssignedList() {
+    const list = document.getElementById('assignedExamsList');
+    list.innerHTML = '<li class="list-group-item text-muted small">Đang tải...</li>';
+    
+    const snap = await database.ref(`users/${currentStudentUsername}/assignedExams`).once('value');
+    const assigned = snap.val() || {};
+    
+    list.innerHTML = '';
+    Object.keys(assigned).forEach(examId => {
+        list.innerHTML += `
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                ${examId}
+                <button class="btn btn-danger btn-sm" onclick="removeAssignedExam('${examId}')">Xóa</button>
+            </li>`;
+    });
+}
+
+// 3. Giao đề
+async function assignExamToStudent() {
+    const examId = document.getElementById('selectExam').value;
+    if (!examId) return alert("Vui lòng chọn đề thi!");
+    
+    await database.ref(`users/${currentStudentUsername}/assignedExams/${examId}`).set({
+        status: "Chưa làm",
+        assignedAt: new Date().toLocaleString()
+    });
+    renderAssignedList();
+}
+
+// 4. Xóa đề đã giao
+async function removeAssignedExam(examId) {
+    if (confirm("Bạn có chắc muốn xóa đề thi " + examId + " khỏi danh sách của học sinh này?")) {
+        await database.ref(`users/${currentStudentUsername}/assignedExams/${examId}`).remove();
+        renderAssignedList();
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     loadRealtimeUsers();
@@ -382,6 +463,9 @@ function loadRealtimeUsers() {
                         </button>
                         <button class="btn btn-outline-success" onclick="openPublishModal('${username}')">
                             <i class="bi bi-check-circle"></i> Công báo
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="openGiaoDeModal('${user.username}')">
+                            Giao đề
                         </button>
                         ${isLocked ? 
                             `<button class="btn btn-success" onclick="askConfirmUnlock('${username}', '${user.name}')">Mở khóa</button>` : 
