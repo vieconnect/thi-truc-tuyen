@@ -236,7 +236,7 @@ function showToast(message, type = 'success') {
                     ${icon}
                     <span>${message}</span>
                 </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-toast="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="progress" style="height: 3px; background: rgba(255,255,255,0.2);">
                 <div class="progress-bar" role="progressbar" style="width: 100%; background-color: #fff; transition: width 4s linear;"></div>
