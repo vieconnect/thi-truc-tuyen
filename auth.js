@@ -201,7 +201,7 @@ function showLockModal(lockInfo) {
         document.getElementById('displayLockTime').innerText = `Từ: ${lockInfo?.startTime || '---'} | Thời hạn: ${lockInfo?.duration || '---'}`;
         new bootstrap.Modal(document.getElementById('lockAccountModal')).show();
     } else {
-        alert(`Tài khoản [${lockInfo?.sbd}] đang bị khóa!\nLý do: ${lockInfo?.reason}\nThời gian: ${lockInfo?.duration}`);
+        showToast("Tài khoản [${lockInfo?.sbd}] đang bị khóa!\nLý do: ${lockInfo?.reason}\nThời gian: ${lockInfo?.duration}","danger");
     }
 }
 
@@ -230,7 +230,7 @@ function showToast(message, type = 'success') {
     }
 
     const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 shadow mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+        <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 shadow mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000">
             <div class="d-flex">
                 <div class="toast-body d-flex align-items-center">
                     ${icon}
@@ -239,7 +239,7 @@ function showToast(message, type = 'success') {
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
             <div class="progress" style="height: 3px; background: rgba(255,255,255,0.2);">
-                <div class="progress-bar" role="progressbar" style="width: 100%; background-color: #fff; transition: width 4s linear;"></div>
+                <div class="progress-bar" role="progressbar" style="width: 100%; background-color: #fff; transition: width 6s linear;"></div>
             </div>
         </div>
     `;
