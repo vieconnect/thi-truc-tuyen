@@ -8,80 +8,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="styles.css">
     <style>
-        .exam-monitor-box {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 180px;
-            height: 135px;
-            background: #222;
-            border: 3px solid #dc3545;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            z-index: 9999;
-            overflow: hidden;
-            display: none;
-        }
-        .exam-monitor-box video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .monitor-badge {
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            font-size: 10px;
-            padding: 2px 6px;
-            background: rgba(220, 53, 69, 0.85);
-            color: white;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .monitor-static-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffc107;
-            font-size: 11px;
-            font-weight: bold;
-            text-align: center;
-            padding: 10px;
-            text-transform: uppercase;
-        }
-        /* Style cho bộ đếm thời gian */
-        .timer-box {
-            font-size: 1.25rem;
-            font-weight: bold;
-            padding: 8px 15px;
-            border-radius: 8px;
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-            display: inline-flex;
-            align-items: center;
-        }
-        .timer-box.timeout-warning {
-            background-color: #f8d7da;
-            color: #721c24;
-            border-color: #f5c6cb;
-            animation: pulse-border 1s infinite;
-        }
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
-            70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
-        }
-        /* Khung định vị khu vực chứa các Toast thông báo độc lập */
-        #toastContainer {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 100000;
-            width: 350px;
-        }
+        .exam-monitor-box { position: fixed; bottom: 20px; right: 20px; width: 180px; height: 135px; background: #222; border: 3px solid #dc3545; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 9999; overflow: hidden; display: none; }
+        .exam-monitor-box video { width: 100%; height: 100%; object-fit: cover; }
+        .monitor-badge { position: absolute; top: 5px; left: 5px; font-size: 10px; padding: 2px 6px; background: rgba(220, 53, 69, 0.85); color: white; border-radius: 4px; font-weight: bold; }
+        .monitor-static-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #ffc107; font-size: 11px; font-weight: bold; text-align: center; padding: 10px; text-transform: uppercase; }
+        .timer-box { font-size: 1.25rem; font-weight: bold; padding: 8px 15px; border-radius: 8px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; display: inline-flex; align-items: center; }
+        .timer-box.timeout-warning { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; animation: pulse-border 1s infinite; }
+        @keyframes pulse-border { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
+        #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 100000; width: 350px; }
     </style>
 </head>
 <body class="bg-light">
@@ -101,7 +35,6 @@
 <div class="container mt-5">
     <div class="row">
         <div class="col-md-8 mx-auto">
-            
             <div id="examListWrapper" class="card p-4 shadow-sm mb-4">
                 <h4 class="fw-bold text-primary mb-3 text-center">Danh sách Đề Thi được giao</h4>
                 <div id="examListContainer" class="list-group">
@@ -121,18 +54,15 @@
                 </div>
                 <hr class="mt-2">
                 <div id="questionsContainer"></div>
-                <button class="btn btn-success w-100 mt-3" onclick="submitExam()">Nộp bài và lưu kết quả</button>
+                <div id="actionBtnContainer" class="mt-3"></div>
             </div>
-
         </div>
     </div>
 </div>
 
 <div class="exam-monitor-box" id="cameraMonitorBox">
     <span class="monitor-badge">● SCREEN LIVE</span>
-    <div class="monitor-static-placeholder bg-dark">
-        <span>Hệ thống đang<br>giám sát cửa sổ...</span>
-    </div>
+    <div class="monitor-static-placeholder bg-dark"><span>Hệ thống đang<br>giám sát cửa sổ...</span></div>
     <video id="monitorCameraVideo" autoplay muted playsinline style="display: none;"></video>
 </div>
 <canvas id="monitorCanvas" style="display: none;"></canvas>
@@ -155,11 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name}`;
-    
     checkRunningExamState();
 });
 
-// Hàm kiểm tra và khôi phục trạng thái làm bài khi Reload (F5)
 async function checkRunningExamState() {
     const savedExamId = localStorage.getItem('runningExamId');
     const savedStartTime = localStorage.getItem('runningExamStartTime');
@@ -180,10 +108,8 @@ async function checkRunningExamState() {
                 };
 
                 document.getElementById('examListWrapper').style.display = 'none';
-                
                 document.getElementById('cameraMonitorBox').style.display = 'block';
                 document.getElementById('quizWorkspace').style.display = 'block';
-                
                 document.getElementById('workspaceTitle').innerText = activeExam.subject;
                 document.getElementById('workspaceTime').innerText = activeExam.time;
                 document.getElementById('workspaceExpired').innerText = activeExam.expired || "Không giới hạn";
@@ -194,14 +120,12 @@ async function checkRunningExamState() {
                 const startTimeMs = parseInt(savedStartTime);
                 const durationMinutes = parseInt(savedDuration);
                 const currentTimeMs = Date.now();
-                
                 const timePassedSeconds = Math.floor((currentTimeMs - startTimeMs) / 1000);
                 const totalDurationSeconds = durationMinutes * 60;
                 const remainingSeconds = totalDurationSeconds - timePassedSeconds;
 
                 if (remainingSeconds <= 0) {
-                    // THAY ĐỔI: Chuyển alert thành showToast cảnh báo
-                    showToast("Thời gian làm bài thi đã hết trong lúc tải lại trang! Hệ thống tự động nộp.", "danger");
+                    showToast("Thời gian làm bài đã hết! Hệ thống tự động nộp.", "danger");
                     submitExam();
                 } else {
                     resumeExamTimer(remainingSeconds);
@@ -212,7 +136,6 @@ async function checkRunningExamState() {
             console.error("Lỗi đồng bộ F5:", e);
         }
     }
-    
     renderAssignedExams();
 }
 
@@ -220,7 +143,6 @@ async function renderAssignedExams() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const container = document.getElementById('examListContainer');
     container.innerHTML = '';
-    
     try {
         const userAssignedSnapshot = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
         const userAssignedExams = userAssignedSnapshot.val() || {};
@@ -234,20 +156,13 @@ async function renderAssignedExams() {
         for (const examId of examIds) {
             const userExamState = userAssignedExams[examId];
             const hasDone = userExamState && (userExamState.status === "Đã hoàn thành" || userExamState.submitTime !== undefined);
-
             const globalExamSnapshot = await database.ref(`exams/${examId}`).once('value');
             const globalExamData = globalExamSnapshot.val();
-
             if (!globalExamData) continue; 
 
-            let btnHtml = '';
-            if (hasDone) {
-                btnHtml = `<span class="badge bg-danger mt-2 p-2 d-inline-block">Đã hoàn thành</span>`;
-            } else {
-                btnHtml = `<button class="btn btn-sm btn-primary mt-2" onclick="startExam('${examId}')">Bắt đầu làm bài</button>`;
-            }
+            let btnHtml = hasDone ? `<span class="badge bg-danger mt-2 p-2 d-inline-block">Đã hoàn thành</span>` : `<button class="btn btn-sm btn-primary mt-2" onclick="startExam('${examId}')">Bắt đầu làm bài</button>`;
 
-            const itemHtml = `
+            container.insertAdjacentHTML('beforeend', `
                 <div class="list-group-item list-group-item-action p-3 mb-2 border rounded">
                     <div class="d-flex w-100 justify-content-between align-items-center">
                         <h6 class="mb-1 fw-bold text-dark">${globalExamData.subject || 'Môn thi không tên'}</h6>
@@ -256,136 +171,83 @@ async function renderAssignedExams() {
                     <p class="mb-1 text-muted small">Thời gian làm bài: ${globalExamData.time || 'Không giới hạn'}</p>
                     ${btnHtml}
                 </div>
-            `;
-            container.insertAdjacentHTML('beforeend', itemHtml);
+            `);
         }
     } catch (error) {
-        container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi kết nối dữ liệu danh sách đề!</div>';
+        container.innerHTML = '<div class="text-center p-3 text-danger">Lỗi kết nối dữ liệu!</div>';
     }
 }
 
 async function startExam(examId) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    
+    const userSnapshot = await database.ref(`users/${currentUser.username}`).once('value');
+    const userData = userSnapshot.val();
+    const isLocked = userData && userData.isLocked === true;
+
     try {
         const examSnapshot = await database.ref(`exams/${examId}`).once('value');
         const examData = examSnapshot.val();
-
-        if (!examData) {
-            // THAY ĐỔI: Chuyển alert thành showToast lỗi dạng danger
-            showToast("Mã đề thi này không tồn tại trên hệ thống!", "danger");
-            return;
-        }
-
-        activeExam = {
-            id: examId,
-            subject: examData.subject,
-            time: examData.time || "Không giới hạn",
-            expired: examData.expired,
-            questions: examData.questions || {}
-        };
-
-        screenViolationCount = 0;
-
-        await database.ref('users/' + currentUser.username).update({ 
-            examStatus: "Đang làm bài",
-            screenViolations: 0
-        });
+        activeExam = { id: examId, subject: examData.subject, time: examData.time, expired: examData.expired, questions: examData.questions || {} };
         
-        await database.ref(`users/${currentUser.username}/assignedExams/${examId}`).update({
-            status: "Đang làm bài"
-        });
-        
-        await database.ref(`users/${currentUser.username}/violationLogs`).remove();
-
         document.getElementById('examListWrapper').style.display = 'none';
-        
-        document.getElementById('cameraMonitorBox').style.display = 'block';
         document.getElementById('quizWorkspace').style.display = 'block';
-        
         document.getElementById('workspaceTitle').innerText = activeExam.subject;
         document.getElementById('workspaceTime').innerText = activeExam.time;
         document.getElementById('workspaceExpired').innerText = activeExam.expired || "Không giới hạn";
 
-        renderQuestions(activeExam.questions);
-        startScreenWindowTracker();
-        
-        initExamTimer(activeExam.time, examId);
-        
-        // Bổ sung: Thông báo bắt đầu làm bài thành công
-        showToast(`Đã tải xong đề thi: ${activeExam.subject}. Chúc bạn làm bài tốt!`, "success");
+        const btnContainer = document.getElementById('actionBtnContainer');
 
+        if (isLocked) {
+            document.getElementById('questionsContainer').innerHTML = `
+                <div class="alert alert-danger text-center p-4">
+                    <i class="bi bi-lock-fill" style="font-size: 2rem;"></i>
+                    <h4 class="mt-2">Tài khoản đã bị khóa</h4>
+                    <p>Tài khoản này hiện đang bị khóa, do đó bạn sẽ không thể thực hiện bài thi này</p>
+                </div>`;
+            btnContainer.innerHTML = `<a href="dashboard.html" class="btn btn-secondary w-100"><i class="bi bi-arrow-left"></i> Quay lại Dashboard</a>`;
+            document.getElementById('cameraMonitorBox').style.display = 'none';
+        } else {
+            renderQuestions(activeExam.questions);
+            startScreenWindowTracker();
+            initExamTimer(activeExam.time, examId);
+            document.getElementById('cameraMonitorBox').style.display = 'block';
+            btnContainer.innerHTML = `<button class="btn btn-success w-100" onclick="submitExam()">Nộp bài và lưu kết quả</button>`;
+        }
     } catch (error) {
-        // THAY ĐỔI: Chuyển alert thành showToast lỗi khởi tạo đề
-        showToast("Lỗi khởi tạo bài thi: " + error.message, "danger");
+        showToast("Lỗi: " + error.message, "danger");
     }
 }
 
 function initExamTimer(timeString, examId) {
     if (examTimerInterval) clearInterval(examTimerInterval);
-    
     const timerContainer = document.getElementById('timerContainer');
     const countdownTimer = document.getElementById('countdownTimer');
-    timerContainer.classList.remove('timeout-warning');
-    
     let durationMinutes = parseInt(timeString);
-    if (isNaN(durationMinutes) || durationMinutes <= 0) {
-        timerContainer.style.display = 'none';
-        return;
-    }
-    
+    if (isNaN(durationMinutes) || durationMinutes <= 0) { timerContainer.style.display = 'none'; return; }
     localStorage.setItem('runningExamId', examId);
     localStorage.setItem('runningExamStartTime', Date.now().toString());
     localStorage.setItem('runningExamDuration', durationMinutes.toString());
-    
     timerContainer.style.display = 'inline-flex';
-    let totalSeconds = durationMinutes * 60;
-    
-    runCountdown(totalSeconds, timerContainer, countdownTimer);
+    runCountdown(durationMinutes * 60, timerContainer, countdownTimer);
 }
 
 function resumeExamTimer(secondsLeft) {
     const timerContainer = document.getElementById('timerContainer');
     const countdownTimer = document.getElementById('countdownTimer');
     timerContainer.style.display = 'inline-flex';
-    
-    if (secondsLeft <= 60) {
-        timerContainer.classList.add('timeout-warning');
-    }
-    
     runCountdown(secondsLeft, timerContainer, countdownTimer);
 }
 
 function runCountdown(initialSeconds, container, displayElement) {
     let secondsTime = initialSeconds;
-    updateTimerDisplay(secondsTime, displayElement);
-    
-    examTimerInterval = setInterval(() => {
+    const update = () => {
+        let m = Math.floor(secondsTime / 60), s = secondsTime % 60;
+        displayElement.innerText = `${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        if (secondsTime <= 0) { clearInterval(examTimerInterval); clearRunningExamStorage(); submitExam(); }
         secondsTime--;
-        updateTimerDisplay(secondsTime, displayElement);
-        
-        if (secondsTime <= 60) {
-            container.classList.add('timeout-warning');
-        }
-        
-        if (secondsTime <= 0) {
-            clearInterval(examTimerInterval);
-            clearRunningExamStorage();
-            // THAY ĐỔI: Chuyển alert thành showToast cảnh báo tự động nộp bài
-            showToast("Đã hết thời gian làm bài! Hệ thống tự động nộp bài thi của bạn.", "warning");
-            submitExam();
-        }
-    }, 1000);
-}
-
-function updateTimerDisplay(secondsLeft, element) {
-    let minutes = Math.floor(secondsLeft / 60);
-    let seconds = secondsLeft % 60;
-    
-    minutes = minutes < 10 ? "0" + minutes : minutes;
-    seconds = seconds < 10 ? "0" + seconds : seconds;
-    
-    element.innerText = `${minutes}:${seconds}`;
+    };
+    update();
+    examTimerInterval = setInterval(update, 1000);
 }
 
 function clearRunningExamStorage() {
@@ -405,81 +267,29 @@ function stopScreenWindowTracker() {
     document.removeEventListener('visibilitychange', handleVisibilityViolation);
     window.removeEventListener('blur', handleBlurViolation);
     document.getElementById('cameraMonitorBox').style.display = 'none';
-    
     if (examTimerInterval) clearInterval(examTimerInterval);
 }
 
-function handleVisibilityViolation() {
-    if (document.visibilityState === 'hidden' && isExamInProgress) {
-        processViolationCommit("Thí sinh rời khỏi tab làm bài");
-    }
-}
-
-function handleBlurViolation() {
-    if (isExamInProgress) {
-        processViolationCommit("Thí sinh mở cửa sổ khác đè lên màn hình thi");
-    }
-}
+function handleVisibilityViolation() { if (document.visibilityState === 'hidden' && isExamInProgress) processViolationCommit("Thí sinh rời khỏi tab"); }
+function handleBlurViolation() { if (isExamInProgress) processViolationCommit("Thí sinh mở cửa sổ khác"); }
 
 async function processViolationCommit(reason) {
     if (!activeExam) return;
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (!currentUser) return;
-
     screenViolationCount++;
-    const timeStr = new Date().toLocaleString('vi-VN');
-    
-    // Bổ sung: Đưa ra thông báo Toast cảnh báo trực quan cho thí sinh biết khi vi phạm rời tiêu điểm
-    showToast(`Cảnh báo vi phạm: ${reason} (Lần ${screenViolationCount})`, "warning");
-
-    try {
-        await database.ref(`users/${currentUser.username}/screenViolations`).set(screenViolationCount);
-        await database.ref(`users/${currentUser.username}/violationLogs`).push({
-            violationIndex: screenViolationCount,
-            reason: reason,
-            time: timeStr
-        });
-    } catch (err) {
-        console.error("Lỗi ghi nhận vi phạm:", err);
-    }
+    showToast(`Cảnh báo vi phạm: ${reason}`, "warning");
+    await database.ref(`users/${currentUser.username}/screenViolations`).set(screenViolationCount);
 }
 
 function renderQuestions(questions) {
     const container = document.getElementById('questionsContainer');
     container.innerHTML = '';
-    
-    const qIds = Object.keys(questions);
-    if (qIds.length === 0) {
-        container.innerHTML = '<p class="text-danger">Đề thi chưa được cấu hình câu hỏi.</p>';
-        return;
-    }
-
-    let index = 1;
-    qIds.forEach(qId => {
-        const qData = questions[qId];
+    Object.keys(questions).forEach((qId, idx) => {
         let optionsHtml = '';
-        
-        if (qData.options) {
-            Object.keys(qData.options).forEach(optKey => {
-                optionsHtml += `
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="radio" name="${qId}" id="${qId}_${optKey}" value="${optKey}">
-                        <label class="form-check-label" for="${qId}_${optKey}">
-                            <strong>${optKey}.</strong> ${qData.options[optKey]}
-                        </label>
-                    </div>
-                `;
-            });
-        }
-
-        const qHtml = `
-            <div class="mb-4 p-3 border-bottom rounded bg-white">
-                <p class="fw-bold">Câu ${index}: ${qData.title}</p>
-                <div class="options-group">${optionsHtml}</div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', qHtml);
-        index++;
+        Object.keys(questions[qId].options).forEach(optKey => {
+            optionsHtml += `<div class="form-check mb-2"><input class="form-check-input" type="radio" name="${qId}" value="${optKey}"><label class="form-check-label">${optKey}. ${questions[qId].options[optKey]}</label></div>`;
+        });
+        container.insertAdjacentHTML('beforeend', `<div class="mb-4 p-3 border-bottom rounded bg-white"><p class="fw-bold">Câu ${idx+1}: ${questions[qId].title}</p>${optionsHtml}</div>`);
     });
 }
 
@@ -488,68 +298,65 @@ async function submitExam() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const username = currentUser.username;
     
+    // 1. Thu thập đáp án từ giao diện
     let selectedAnswers = {};
     document.querySelectorAll('#questionsContainer input[type="radio"]:checked').forEach(elem => {
         selectedAnswers[elem.name] = elem.value;
     });
 
+    // 2. Tính điểm
+    let totalQuestions = Object.keys(activeExam.questions).length;
+    let correctCount = 0;
+    if (totalQuestions > 0) {
+        for (let qId in activeExam.questions) {
+            if (selectedAnswers[qId] && selectedAnswers[qId] === activeExam.questions[qId].correctAnswer) {
+                correctCount++;
+            }
+        }
+    }
+    let calculatedScore = totalQuestions > 0 ? (correctCount / totalQuestions) * 10 : 0;
+    calculatedScore = Math.round(calculatedScore * 100) / 100;
+
+    // 3. Tạo gói dữ liệu đầy đủ (Payload)
+    const resultPayload = {
+        status: "Đã hoàn thành",
+        submitTime: new Date().toLocaleString('vi-VN'),
+        autoScore: calculatedScore,
+        finalScore: calculatedScore,
+        selectedAnswers: selectedAnswers, // Dữ liệu này giúp trang Admin hiển thị đáp án
+        screenViolations: screenViolationCount,
+        isPublished: false 
+    };
+
     try {
         stopScreenWindowTracker(); 
         clearRunningExamStorage();
 
-        let totalQuestions = Object.keys(activeExam.questions).length;
-        let correctCount = 0;
-
-        if (totalQuestions > 0) {
-            for (let qId in activeExam.questions) {
-                const correctAnswer = activeExam.questions[qId].correctAnswer;
-                if (selectedAnswers[qId] && selectedAnswers[qId] === correctAnswer) {
-                    correctCount++;
-                }
-            }
-        }
-        
-        let calculatedScore = totalQuestions > 0 ? (correctCount / totalQuestions) * 10 : 0;
-        calculatedScore = Math.round(calculatedScore * 100) / 100;
-
-        const resultPayload = {
-            status: "Đã hoàn thành",
-            submitTime: new Date().toLocaleString('vi-VN'),
-            autoScore: calculatedScore,
-            finalScore: calculatedScore,
-            selectedAnswers: selectedAnswers,
-            screenViolations: screenViolationCount,
-            isPublished: false 
-        };
-
-        await database.ref('users/' + username).update({ examStatus: "Đã nộp bài" });
+        // Ghi vào nhánh assignedExams để đồng bộ trạng thái
         await database.ref(`users/${username}/assignedExams/${activeExam.id}`).update(resultPayload);
+        await database.ref('users/' + username).update({ examStatus: "Đã nộp bài" });
 
+        // Ghi vào nhánh historyExams với đầy đủ dữ liệu để Admin hiển thị được kết quả
         const histSnap = await database.ref(`users/${username}/historyExams`).once('value');
         let currentHistory = histSnap.val() || [];
         if (!Array.isArray(currentHistory)) currentHistory = Object.values(currentHistory);
         
         const newHistoryRecord = {
-            stt: currentHistory.length + 1,
+            ...resultPayload, // Đẩy toàn bộ kết quả vào đây
             subject: activeExam.subject,
-            time: new Date().toLocaleString('vi-VN'),
-            expired: activeExam.expired || "Không giới hạn",
-            status: "Đã hoàn thành",
-            examId: activeExam.id 
+            examId: activeExam.id,
+            stt: currentHistory.length + 1
         };
         
         currentHistory.push(newHistoryRecord);
         await database.ref(`users/${username}/historyExams`).set(currentHistory);
         
-        // Gọi hàm showToast thành công từ auth.js trước khi chuyển hướng trang
-        showToast("Nộp bài thi thành công! Đang lưu giữ kết quả...", "success");
-        
+        showToast("Nộp bài thi thành công!", "success");
         setTimeout(() => {
             window.location.replace('tien-do-cong-viec.html');
         }, 1500);
 
     } catch (error) {
-        // THAY ĐỔI: Chuyển alert lỗi nộp bài sang showToast dạng danger
         showToast("Lỗi hệ thống khi nộp bài: " + error.message, "danger");
     }
 }
