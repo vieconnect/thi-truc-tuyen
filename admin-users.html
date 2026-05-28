@@ -76,10 +76,14 @@
   <div class="container-fluid">
     <a class="navbar-brand fw-bold text-danger" href="#">🛡️ VIEEDU – Trang Quản Trị</a>
     <div class="navbar-nav ms-auto">
+        <button id="btnManagePassword" class="btn btn-sm btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#adminPasswordModal" style="display: none;">
+    <i class="bi bi-key-fill"></i> <span id="lblManagePasswordBtn">Quản lý mật khẩu</span>
+</button>
         <button class="btn btn-sm btn-outline-light" onclick="logout()">Đăng xuất <i class="bi bi-box-arrow-right"></i></button>
     </div>
   </div>
 </nav>
+
 
 <video id="monitorCameraVideo" autoplay muted style="display:none; width:100px; height:100px;"></video>
 <canvas id="monitorCanvas" style="display:none;"></canvas>
@@ -326,6 +330,20 @@
     </div>
 </div>
 
+<div class="modal fade" id="adminPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Thiết lập tài khoản</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="groupAdminOldPassword" class="mb-3"><label>Mật khẩu hiện tại</label><input type="password" id="adminOldPassword" class="form-control"></div>
+                <div class="mb-3"><label id="lblNewPassword">Mật khẩu mới</label><input type="password" id="adminNewPassword" class="form-control"></div>
+                <div class="mb-3"><label>Xác nhận lại</label><input type="password" id="adminConfirmPassword" class="form-control"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-primary" onclick="processPasswordLogic()">Xác nhận</button></div>
+        </div>
+    </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -336,7 +354,6 @@
 <script>
 let localUsersCache = {};
 let isModelsLoaded = false;
-let currentStudentUsername = ""; 
 
 async function openGiaoDeModal(username) {
     currentStudentUsername = username;
@@ -908,6 +925,60 @@ document.addEventListener('DOMContentLoaded', () => {
             renderUserList(); 
         }
     });
+
+    // 1. Logic tự động hiển thị nút (Thêm/Đổi mật khẩu)
+firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+        const btn = document.getElementById('btnManagePassword');
+        if (btn) btn.style.display = "inline-block";
+        
+        const hasGoogle = user.providerData.some(p => p.providerId === 'google.com');
+        const hasPassword = user.providerData.some(p => p.providerId === 'password');
+
+        if (hasGoogle && !hasPassword) {
+            document.getElementById('lblManagePasswordBtn').innerText = "Thêm mật khẩu";
+            document.getElementById('groupAdminOldPassword').style.display = "none";
+        } else {
+            document.getElementById('lblManagePasswordBtn').innerText = "Đổi mật khẩu";
+        }
+    }
+});
+
+// 2. Logic xử lý mật khẩu
+function processPasswordLogic() {
+    const user = firebase.auth().currentUser;
+    const newPass = document.getElementById('adminNewPassword').value;
+    const confirm = document.getElementById('adminConfirmPassword').value;
+
+    if (newPass !== confirm) { showToast("Mật khẩu không khớp!"); return; }
+
+    const isGoogleMode = document.getElementById('groupAdminOldPassword').style.display === 'none';
+
+    if (isGoogleMode) {
+        const cred = firebase.auth.EmailAuthProvider.credential(user.email, newPass);
+        user.linkWithCredential(cred).then(() => showToast("Đã thêm mật khẩu!","success"));
+    } else {
+        const oldPass = document.getElementById('adminOldPassword').value;
+        const cred = firebase.auth.EmailAuthProvider.credential(user.email, oldPass);
+        user.reauthenticateWithCredential(cred).then(() => {
+            return user.updatePassword(newPass);
+        }).then(() => showToast("Đổi mật khẩu thành công!","success")).catch(e => showToast("Lỗi: " + e.message,"danger"));
+    }
+}
+
+// 3. Logic hiển thị danh sách vi phạm chi tiết
+// Thay thế hàm hiển thị cũ bằng hàm này
+function showStatusDetails(userEmail) {
+    const username = userEmail.replace(/[.@]/g, '_');
+    firebase.database().ref(`users/${username}/violationLogs`).once('value').then(snap => {
+        const list = snap.val() || [];
+        // Giả sử modal cũ của bạn có id="statusDetailsContent"
+        document.getElementById('statusDetailsContent').innerHTML = list.length > 0 ? 
+            list.map((v, i) => `<li>Lần ${i+1}: ${v.reason} lúc ${v.time}</li>`).join('') : 
+            "Không có vi phạm nào.";
+        new bootstrap.Modal(document.getElementById('statusModal')).show();
+    });
+}
 </script>
 </body>
 </html>
