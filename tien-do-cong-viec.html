@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tiến độ công việc</title>
+    <title>Phòng thi - Tiến độ công việc</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="styles.css">
@@ -111,19 +111,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    if(document.getElementById('welcomeMessage')) {
+        document.getElementById('welcomeMessage').innerText = `Thí sinh: ${currentUser.name || ''}`;
+    }
+
+    // Hàm dọn dẹp định danh email đồng bộ với auth.js
+    function getCleanUsername(userObj) {
+        if (userObj.username) return userObj.username;
+        const email = userObj.email || "";
+        return email.replace(/[@.]/g, '_');
+    }
+    
+    const userKey = getCleanUsername(currentUser);
     const tableBody = document.getElementById('contentTableBody'); 
     if(!tableBody) return;
 
-    // Tăng colspan lên 7 cột để khớp giao diện khi đang tải
     tableBody.innerHTML = '<tr><td colspan="7" class="text-center" style="color: #666;"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang đồng bộ tiến độ hệ thống...</td></tr>';
 
     try {
-        // Lấy lịch sử nộp bài của user
-        const historySnap = await database.ref(`users/${currentUser.username}/historyExams`).once('value');
+        // Lấy lịch sử nộp bài từ userKey đã chuẩn hóa
+        const historySnap = await database.ref(`users/${userKey}/historyExams`).once('value');
         const historyExams = historySnap.val() || [];
 
-        // Lấy chi tiết bài chấm điểm từ nhánh assignedExams (Chứa dữ liệu từ Modal Admin)
-        const scoreSnap = await database.ref(`users/${currentUser.username}/assignedExams`).once('value');
+        // Lấy chi tiết bài chấm điểm từ nhánh assignedExams
+        const scoreSnap = await database.ref(`users/${userKey}/assignedExams`).once('value');
         const adminExamsData = scoreSnap.val() || {};
 
         const records = Array.isArray(historyExams) ? historyExams : Object.values(historyExams);
@@ -142,13 +153,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             let scoreDisplayHtml = "";
             let commentDisplayHtml = ""; 
             
-            // KIỂM TRA ĐIỀU KIỆN HIỂN THỊ / THU HỒI TỪ MODAL ADMIN
             if (liveExamDetails) {
                 if (liveExamDetails.isPublished === true) {
-                    // TRẠNG THÁI CÔNG BỐ: Hiển thị điểm số kèm theo ô nhận xét từ Admin
                     scoreDisplayHtml = `<b style="color: #2e7d32; font-size: 1.1rem;">${liveExamDetails.finalScore}</b> <span style="font-size:0.8rem; color:#777;">/ 10</span>`;
-                    
-                    // Nhận diện dữ liệu nhận xét từ modal Admin (Hỗ trợ các key phổ biến: comment, adminComment, hoặc review)
                     const adminComment = liveExamDetails.comment || liveExamDetails.adminComment || liveExamDetails.teacherComment || "";
                     
                     if (adminComment.trim() !== "") {
@@ -157,12 +164,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         commentDisplayHtml = `<span class="text-muted" style="font-style: italic; font-size: 0.85rem;">Không có nhận xét</span>`;
                     }
                 } else {
-                    // TRẠNG THÁI THU HỒI (isPublished = false hoặc không tồn tại): Thu hồi cả Điểm lẫn Nhận xét
                     scoreDisplayHtml = `<i style="color: #e65100; font-size: 0.85rem;">Chưa có kết quả (Chờ duyệt)</i>`;
                     commentDisplayHtml = `<i style="color: #e65100; font-size: 0.85rem;">Đang cập nhật...</i>`;
                 }
             } else {
-                // Trường hợp dữ liệu cũ hoặc chưa chấm
                 scoreDisplayHtml = `<i style="color: #9e9e9e; font-size: 0.85rem;">Chưa có kết quả</i>`;
                 commentDisplayHtml = `<i style="color: #9e9e9e; font-size: 0.85rem;">Chưa có nhận xét</i>`;
             }
@@ -184,6 +189,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.error("Lỗi đồng bộ dữ liệu fl-table:", error);
         tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger" style="padding: 20px;">Lỗi tải dữ liệu tiến độ. Vui lòng làm mới trang!</td></tr>';
+    }
+
+    if(document.getElementById('logoutButton')) {
+        document.getElementById('logoutButton').addEventListener('click', logout);
     }
 });
 </script>
