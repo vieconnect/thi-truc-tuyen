@@ -433,3 +433,16 @@ function showToast(message, type = 'success') {
         toastElement.remove();
     });
 }
+
+// Hàm kiểm tra quyền Admin bằng trường role
+function checkAdminAccess() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    // Kiểm tra xem trường role có tồn tại và có bằng 'admin' (không phân biệt hoa thường) hay không
+    if (!currentUser || !currentUser.role || currentUser.role.toLowerCase() !== 'admin') {
+        showToast("Bạn không có quyền truy cập trang này!","danger");
+        window.location.replace('dashboard.html');
+        return false;
+    }
+    return true;
+}

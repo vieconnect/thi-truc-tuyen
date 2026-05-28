@@ -823,6 +823,14 @@ async function loadFaceAIModels() {
     }
 }
 loadFaceAIModels();
+
+document.addEventListener('DOMContentLoaded', () => {
+        // Kiểm tra quyền ngay lập tức
+        if (checkAdminAccess()) {
+            // Nếu là admin thì mới chạy tiếp các hàm load dữ liệu khác
+            renderUserList(); 
+        }
+    });
 </script>
 </body>
 </html>
