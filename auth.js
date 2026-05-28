@@ -434,14 +434,26 @@ function showToast(message, type = 'success') {
     });
 }
 
-// Hàm kiểm tra quyền Admin bằng trường role
+// HÀM 1: Chặn thí sinh vào trang ADMIN (Gọi ở các trang admin)
 function checkAdminAccess() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     
-    // Kiểm tra xem trường role có tồn tại và có bằng 'admin' (không phân biệt hoa thường) hay không
     if (!currentUser || !currentUser.role || currentUser.role.toLowerCase() !== 'admin') {
-        showToast("Bạn không có quyền truy cập trang này!","danger");
+        alert("Bạn không có quyền truy cập trang quản trị!");
         window.location.replace('dashboard.html');
+        return false;
+    }
+    return true;
+}
+
+// HÀM 2: Chặn ADMIN vào trang THÍ SINH (Gọi ở các trang làm bài, dashboard, tiến độ)
+function checkStudentAccess() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    
+    // Nếu đã đăng nhập và tài khoản có role là admin -> Tự động đẩy thẳng sang trang quản trị
+    if (currentUser && currentUser.role && currentUser.role.toLowerCase() === 'admin') {
+        alert("Tài khoản của bạn là tài khoản Admin, vui lòng truy cập trang quản trị để quản lý thí sinh")
+        window.location.replace('admin-users.html');
         return false;
     }
     return true;
