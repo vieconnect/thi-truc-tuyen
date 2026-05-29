@@ -16,6 +16,8 @@
         .timer-box.timeout-warning { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; animation: pulse-border 1s infinite; }
         @keyframes pulse-border { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
         #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 100000; width: 350px; }
+
+        /* 🔥 FIX TRIỆT ĐỂ: Khóa chết căn lề trái, phá vỡ căn giữa từ các file bên ngoài */
     </style>
 </head>
 <body class="bg-light">
@@ -85,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // ĐIỀU HƯỚNG NẾU LÀ ADMIN TRUY CẬP TRANG THÍ SINH
     if (currentUser.role && currentUser.role.toLowerCase() === 'admin') {
         window.location.replace('admin-users.html');
         return;
@@ -122,6 +123,12 @@ async function checkRunningExamState() {
                 document.getElementById('workspaceExpired').innerText = activeExam.expired || "Không giới hạn";
 
                 renderQuestions(activeExam.questions);
+                
+                const btnContainer = document.getElementById('actionBtnContainer');
+                if (btnContainer) {
+                    btnContainer.innerHTML = `<button class="btn btn-success w-100 fw-bold shadow-sm" onclick="submitExam()">Nộp bài và lưu kết quả</button>`;
+                }
+
                 startScreenWindowTracker();
 
                 const startTimeMs = parseInt(savedStartTime);
@@ -218,7 +225,7 @@ async function startExam(examId) {
             startScreenWindowTracker();
             initExamTimer(activeExam.time, examId);
             document.getElementById('cameraMonitorBox').style.display = 'block';
-            btnContainer.innerHTML = `<button class="btn btn-success w-100" onclick="submitExam()">Nộp bài và lưu kết quả</button>`;
+            btnContainer.innerHTML = `<button class="btn btn-success w-100 fw-bold shadow-sm" onclick="submitExam()">Nộp bài và lưu kết quả</button>`;
         }
     } catch (error) {
         showToast("Lỗi: " + error.message, "danger");
@@ -278,37 +285,63 @@ function stopScreenWindowTracker() {
 }
 
 function handleVisibilityViolation() { if (document.visibilityState === 'hidden' && isExamInProgress) processViolationCommit("Thí sinh rời khỏi tab"); }
-function handleBlurViolation() { if (isExamInProgress) processViolationCommit("Thí sinh mở cửa sổ khác"); }
+function handleBlurViolation() { if (isExamInProgress) processViolationCommit("Thí sinh mở cửa sổ khác / Thoát màn hình thi"); }
 
 async function processViolationCommit(reason) {
     if (!activeExam) return;
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    const username = currentUser.username;
+    
     screenViolationCount++;
     showToast(`Cảnh báo vi phạm: ${reason}`, "warning");
-    await database.ref(`users/${currentUser.username}/screenViolations`).set(screenViolationCount);
+    
+    await database.ref(`users/${username}/screenViolations`).set(screenViolationCount);
+
+    const violationItem = {
+        reason: reason,
+        time: new Date().toLocaleString('vi-VN'),
+        evidence: "No-Image"
+    };
+    try {
+        await database.ref(`violationLogs/${username}`).push(violationItem);
+    } catch(err) {
+        console.error("Lỗi đồng bộ log vi phạm:", err);
+    }
 }
 
 function renderQuestions(questions) {
     const container = document.getElementById('questionsContainer');
     container.innerHTML = '';
     
-    Object.keys(questions).forEach((qId, idx) => {
-        const question = questions[qId];
-        let answerAreaHtml = '';
+    const sortedQKeys = Object.keys(questions).sort((a, b) => {
+        return (parseInt(a.replace(/[^0-9]/g, '')) || 0) - (parseInt(b.replace(/[^0-9]/g, '')) || 0);
+    });
 
-        if (question.type === 'tu_luan' || !question.options) {
+    sortedQKeys.forEach((qId, idx) => {
+        const question = questions[qId];
+        const qType = question.type || 'trac_nghiem';
+        
+        let answerAreaHtml = '';
+        let wrapperClass = 'mb-4 p-3 border-bottom rounded bg-white shadow-sm question-block-wrapper';
+
+        if (qType === 'doan_van') {
+            wrapperClass = 'mb-4 p-3 border rounded shadow-sm bg-light text-dark question-block-wrapper';
             answerAreaHtml = `
-                <div class="mt-2">
-                    <label class="form-label small fw-semibold text-primary"><i class="bi bi-pencil-square me-1"></i> Nhập câu trả lời tự luận của bạn:</label>
+                <div class="fw-medium text-secondary" style="white-space: pre-wrap; word-break: break-word; font-size: 0.95rem; line-height: 1.6;">
+                    ${question.title}
+                </div>`;
+        } else if (qType === 'tu_luan') {
+            answerAreaHtml = `
+                <div class="mt-2 w-100">
+                    <label class="form-label small fw-semibold text-primary m-0 mb-1 d-block"><i class="bi bi-pencil-square me-1"></i> Nhập câu trả lời tự luận của bạn:</label>
                     <textarea class="form-control essay-answer-input" name="${qId}" rows="4" placeholder="Gõ nội dung bài làm tự luận tại đây..."></textarea>
-                </div>
-            `;
+                </div>`;
         } else {
             let optionsHtml = '';
             if (question.options) {
                 Object.keys(question.options).forEach(optKey => {
                     optionsHtml += `
-                        <div class="form-check mb-2">
+                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="${qId}" value="${optKey}">
                             <label class="form-check-label">${optKey}. ${question.options[optKey]}</label>
                         </div>`;
@@ -318,13 +351,12 @@ function renderQuestions(questions) {
         }
 
         container.insertAdjacentHTML('beforeend', `
-            <div class="mb-4 p-3 border-bottom rounded bg-white shadow-sm">
-                <p class="fw-bold mb-2">
-                    <span class="badge ${question.type === 'tu_luan' ? 'bg-warning text-dark' : 'bg-primary'} me-2">
-                        ${question.type === 'tu_luan' ? 'Tự luận' : 'Trắc nghiệm'}
-                    </span>
-                    Câu ${idx + 1}: ${question.title}
-                </p>
+            <div class="${wrapperClass}">
+                ${qType !== 'doan_van' ? `
+                    <div class="fw-bold question-title-text">
+                        Câu ${idx + 1}: ${question.title}
+                    </div>
+                ` : ''}
                 ${answerAreaHtml}
             </div>
         `);
@@ -338,48 +370,40 @@ async function submitExam() {
     
     let selectedAnswers = {};
 
-    // 1. Thu thập đáp án trắc nghiệm
     document.querySelectorAll('#questionsContainer input[type="radio"]:checked').forEach(elem => {
         selectedAnswers[elem.name] = elem.value;
     });
 
-    // 2. Thu thập đáp án tự luận/điền số
     document.querySelectorAll('#questionsContainer .essay-answer-input').forEach(elem => {
         selectedAnswers[elem.name] = elem.value.trim();
     });
 
-    // 3. THUẬT TOÁN CHẤM ĐIỂM TỰ ĐỘNG CẢI TIẾN (FIX LỖI ĐIỂM 0)
-    let totalQuestions = Object.keys(activeExam.questions).length;
+    let totalQuestions = 0;
     let correctCount = 0;
 
-    if (totalQuestions > 0) {
-        for (let qId in activeExam.questions) {
-            const q = activeExam.questions[qId];
-            
-            // Lấy đáp án của thí sinh và đáp án đúng trong hệ thống
-            const studentAns = String(selectedAnswers[qId] || '').trim().toLowerCase();
-            const correctAns = String(q.correctAnswer || '').trim().toLowerCase();
+    for (let qId in activeExam.questions) {
+        const q = activeExam.questions[qId];
+        if (q.type === 'doan_van') continue; 
+        
+        totalQuestions++;
+        const studentAns = String(selectedAnswers[qId] || '').trim().toLowerCase();
+        const correctAns = String(q.correctAnswer || '').trim().toLowerCase();
 
-            // CHẤM ĐIỂM LINH HOẠT:
-            // Nếu là Trắc nghiệm: Khớp hoàn toàn đáp án (A, B, C, D)
-            // Nếu là Tự luận ngắn/Điền số: Nếu admin có cấu hình đáp án đúng (ví dụ: 1234), máy tự chấm luôn
-            if (studentAns !== "" && correctAns !== "") {
-                if (studentAns === correctAns) {
-                    correctCount++;
-                }
+        if (studentAns !== "" && correctAns !== "") {
+            if (studentAns === correctAns) {
+                correctCount++;
             }
         }
     }
 
-    // Tính điểm trên thang điểm 10
     let calculatedScore = totalQuestions > 0 ? (correctCount / totalQuestions) * 10 : 0;
-    calculatedScore = Math.round(calculatedScore * 100) / 100; // Làm tròn 2 chữ số thập phân
+    calculatedScore = Math.round(calculatedScore * 100) / 100;
 
     const resultPayload = {
         status: "Đã hoàn thành",
         submitTime: new Date().toLocaleString('vi-VN'),
         autoScore: calculatedScore,
-        finalScore: calculatedScore, // Điểm số tạm tính trước khi Admin chấm tay lại câu tự luận dài
+        finalScore: calculatedScore, 
         selectedAnswers: selectedAnswers, 
         screenViolations: screenViolationCount,
         isPublished: false 
@@ -389,11 +413,9 @@ async function submitExam() {
         stopScreenWindowTracker(); 
         clearRunningExamStorage();
 
-        // Đồng bộ lên Firebase assignedExams
         await database.ref(`users/${username}/assignedExams/${activeExam.id}`).update(resultPayload);
         await database.ref('users/' + username).update({ examStatus: "Đã nộp bài" });
 
-        // Đồng bộ lên Firebase historyExams để hiển thị ở danh sách lịch sử
         const histSnap = await database.ref(`users/${username}/historyExams`).once('value');
         let currentHistory = histSnap.val() || [];
         if (!Array.isArray(currentHistory)) currentHistory = Object.values(currentHistory);
@@ -416,6 +438,24 @@ async function submitExam() {
     } catch (error) {
         showToast("Lỗi hệ thống khi nộp bài: " + error.message, "danger");
     }
+}
+
+function showToast(message, type = "success") {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const id = 'toast_' + Date.now();
+    const html = `
+        <div id="${id}" class="toast align-items-center text-white bg-${type} border-0 mb-2 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body fw-medium"><i class="bi bi-info-circle-fill me-2"></i>${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>`;
+    container.insertAdjacentHTML('beforeend', html);
+    const toastElement = document.getElementById(id);
+    const bsToast = new bootstrap.Toast(toastElement, { delay: 3000 });
+    bsToast.show();
+    toastElement.addEventListener('hidden.bs.toast', () => { toastElement.remove(); });
 }
 </script>
 </body>

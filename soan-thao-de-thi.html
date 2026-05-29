@@ -6,11 +6,81 @@
     <title>Hệ thống soạn thảo đề thi chuyên sâu</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* GOOGLE FORMS STYLE: Thanh công cụ dính nhỏ gọn ở giữa bên phải */
+        .google-form-toolbar {
+            position: fixed;
+            top: 50%;
+            right: 25px;
+            transform: translateY(-50%);
+            z-index: 1030;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .google-form-toolbar .btn-tool {
+            width: 45px;
+            height: 45px;
+            border-radius: 50% !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-size: 1.2rem;
+            position: relative;
+        }
+        .google-form-toolbar .btn-tool::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            right: 55px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #333;
+            color: #fff;
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.2s ease;
+            pointer-events: none;
+        }
+        .google-form-toolbar .btn-tool:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+        @media (max-width: 1200px) {
+            .google-form-toolbar { right: 5px; padding: 6px; }
+        }
+    </style>
 </head>
 <body class="bg-light">
 
 <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 99999; width: 350px;"></div>
+
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold" id="deleteConfirmModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Xác nhận xóa mục</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Bạn có chắc chắn muốn xóa câu hỏi / đoạn văn ghi chú này ra khỏi đề thi hiện tại không? Hành động này không thể hoàn tác.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary fw-semibold" data-bs-dismiss="modal">Hủy bỏ</button>
+        <button type="button" class="btn btn-danger fw-bold" id="btnConfirmDelete">Đồng ý xóa</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
@@ -22,7 +92,16 @@
   </div>
 </nav>
 
-<div class="container mt-4 mb-5">
+<div class="google-form-toolbar">
+    <button class="btn btn-primary btn-tool" data-tooltip="Thêm câu hỏi mới" onclick="addQuestionBlock('trac_nghiem')">
+        <i class="bi bi-plus-circle-fill"></i>
+    </button>
+    <button class="btn btn-info text-dark btn-tool" data-tooltip="Thêm đoạn văn ghi chú BTC" onclick="addQuestionBlock('doan_van')">
+        <i class="bi bi-file-text-fill"></i>
+    </button>
+</div>
+
+<div class="container mt-4 mb-5" style="max-width: 1000px;">
     <h2 class="fw-bold text-dark mb-4"><i class="bi bi-file-earmark-medical text-primary me-2"></i>Soạn Thảo Đề Thi Chuyên Sâu</h2>
     
     <div class="card p-4 shadow-sm mb-4 bg-white">
@@ -34,7 +113,7 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-bold">Tên bài thi / Môn học</label>
-                <input type="text" class="form-control form-control-sm" id="examSubject" placeholder="Ví dụ: Kiểm tra Toán Đại Số - Chương 1">
+                <input type="text" class="form-control form-control-sm" id="examSubject" placeholder="Ví dụ: Kiểm tra Toán Đại Số">
             </div>
             <div class="col-md-2">
                 <label class="form-label small fw-bold">Thời gian (Phút)</label>
@@ -49,15 +128,11 @@
 
     <div class="card p-4 shadow-sm bg-white">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold text-secondary mb-0"><i class="bi bi-list-task me-1"></i> Cấu trúc nội dung câu hỏi</h5>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-primary" onclick="addQuestion('trac_nghiem')"><i class="bi bi-plus-circle"></i> Thêm câu trắc nghiệm</button>
-                <button class="btn btn-sm btn-warning text-dark" onclick="addQuestion('tu_luan')"><i class="bi bi-pencil-square"></i> Thêm câu tự luận/điền số</button>
-            </div>
+            <h5 class="fw-bold text-secondary mb-0"><i class="bi bi-list-task me-1"></i> Cấu trúc nội dung đề thi</h5>
+            <span class="text-muted small">BTC tự điền số Câu vào nội dung tiêu đề câu hỏi</span>
         </div>
 
-        <div id="questionsWrapper" class="mt-2">
-            </div>
+        <div id="questionsWrapper" class="mt-2"></div>
 
         <hr class="my-4">
         <button class="btn btn-success btn-lg w-100 fw-bold shadow-sm" onclick="publishExam()">
@@ -72,12 +147,13 @@
 <script src="auth.js"></script>
 
 <script>
-let questionCounter = 0;
+let blockCounter = 0;
 let isEditMode = false; 
 let currentEditId = "";  
+let isDataChanged = false; // Biến cờ theo dõi sự thay đổi dữ liệu để chặn F5/Thoát trang
+let activeDeleteBlockId = null; // Lưu ID block đang được yêu cầu xóa
 
 window.onload = function() {
-    // [GIỮ NGUYÊN BẢO MẬT]: Cơ chế kiểm tra quyền Admin từ file auth.js
     if (typeof checkAdminAccess === 'function') {
         const hasAccess = checkAdminAccess();
         if (!hasAccess) return;
@@ -89,211 +165,225 @@ window.onload = function() {
     if (editId) {
         isEditMode = true;
         currentEditId = editId;
-        
-        const pageTitle = document.querySelector('h2.fw-bold');
-        if (pageTitle) pageTitle.innerHTML = `<i class="bi bi-pencil-square text-warning me-2"></i>Hiệu Chỉnh Đề Thi Chuyên Sâu`;
-        
-        const publishBtn = document.querySelector('button[onclick="publishExam()"]');
-        if (publishBtn) publishBtn.innerHTML = `<i class="bi bi-cloud-arrow-up-fill me-1"></i> CẬP NHẬT ĐỀ THI`;
-
+        document.querySelector('h2.fw-bold').innerHTML = `<i class="bi bi-pencil-square text-warning me-2"></i>Hiệu Chỉnh Đề Thi Chuyên Sâu`;
+        document.querySelector('button[onclick="publishExam()"]').innerHTML = `<i class="bi bi-cloud-arrow-up-fill me-1"></i> CẬP NHẬT ĐỀ THI`;
         loadExistingExamData(editId);
     } else {
-        addQuestion('trac_nghiem');
+        addQuestionBlock('trac_nghiem');
     }
+
+    // Lắng nghe sự thay đổi trên toàn bộ input/textarea/select trong biểu mẫu thông tin chung
+    document.querySelectorAll('#examId, #examSubject, #examTime, #examExpired').forEach(el => {
+        el.addEventListener('input', () => { isDataChanged = true; });
+    });
+
+    // Bắt sự kiện thoát trang hoặc F5 tải lại trang
+    window.addEventListener('beforeunload', function (e) {
+        if (isDataChanged) {
+            e.preventDefault();
+            e.returnValue = 'Bạn có những thay đổi chưa được cập nhật/công bố. Bạn có chắc chắn muốn rời đi?';
+        }
+    });
 };
+
+// Hàm sinh mã HTML cho phần nhập đáp án dựa theo thể loại câu hỏi
+function generateOptionsMarkup(type, qData = null) {
+    if (type === 'trac_nghiem') {
+        return `
+            <div class="row g-2 option-group">
+                <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">A</span><input type="text" class="form-control opt-a" value="${qData?.options?.A || ''}" placeholder="Đáp án A"></div></div>
+                <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">B</span><input type="text" class="form-control opt-b" value="${qData?.options?.B || ''}" placeholder="Đáp án B"></div></div>
+                <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">C</span><input type="text" class="form-control opt-c" value="${qData?.options?.C || ''}" placeholder="Đáp án C"></div></div>
+                <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">D</span><input type="text" class="form-control opt-d" value="${qData?.options?.D || ''}" placeholder="Đáp án D"></div></div>
+            </div>
+            <div class="mt-2 row align-items-center">
+                <div class="col-auto"><label class="form-label small fw-bold text-success mb-0">Đáp án đúng:</label></div>
+                <div class="col-auto">
+                    <select class="form-select form-select-sm correct-ans-select">
+                        <option value="A" ${qData?.correctAnswer === 'A' ? 'selected' : ''}>Đáp án A</option>
+                        <option value="B" ${qData?.correctAnswer === 'B' ? 'selected' : ''}>Đáp án B</option>
+                        <option value="C" ${qData?.correctAnswer === 'C' ? 'selected' : ''}>Đáp án C</option>
+                        <option value="D" ${qData?.correctAnswer === 'D' ? 'selected' : ''}>Đáp án D</option>
+                    </select>
+                </div>
+            </div>`;
+    } else if (type === 'tu_luan') {
+        return `
+            <div class="alert alert-secondary p-2 mb-1 small text-muted"><i class="bi bi-info-circle-fill me-1"></i>Thí sinh sẽ trả lời bằng cách nhập văn bản tự do.</div>
+            <div class="row align-items-center mt-2">
+                <div class="col-auto"><label class="form-label small fw-bold text-dark mb-0">Từ khóa / Đáp án mẫu (Nếu có):</label></div>
+                <div class="col-md-6">
+                    <input type="text" class="form-control form-control-sm correct-ans-input" value="${qData?.correctAnswer || ''}" placeholder="Nhập đáp án mẫu hoặc bỏ trống nếu chấm tay">
+                </div>
+            </div>`;
+    } else if (type === 'doan_van') {
+        return `<div class="alert alert-info p-2 mb-0 small"><i class="bi bi-info-circle-fill me-1"></i>Khối này chỉ hiển thị văn bản tĩnh/hướng dẫn của BTC, không có chức năng tính điểm hay nhập liệu làm bài.</div>`;
+    }
+    return '';
+}
+
+// Thay đổi thể loại câu hỏi từ dropdown ngay trong card (Giống Google Forms)
+function changeQuestionType(blockId) {
+    const block = document.getElementById(`block_${blockId}`);
+    if (!block) return;
+    
+    const selectEl = block.querySelector('.type-select');
+    const oldType = block.getAttribute('data-type');
+    const newType = selectEl.value;
+    
+    if (oldType === newType) return;
+    
+    isDataChanged = true; // Báo hiệu dữ liệu đã đổi
+    block.setAttribute('data-type', newType);
+    
+    // Đổi cấu trúc ô nhập tiêu đề nếu chuyển qua lại với khối Đoạn Văn
+    const titleContainer = block.querySelector('.title-input-container');
+    const currentTitleVal = block.querySelector('.q-title-input').value;
+    
+    if (newType === 'doan_van') {
+        titleContainer.innerHTML = `<textarea class="form-control form-control-sm fw-medium q-title-input" rows="3" placeholder="Nhập văn bản ghi chú / hướng dẫn thi của BTC tại đây...">${currentTitleVal}</textarea>`;
+    } else {
+        if (oldType === 'doan_van') {
+            titleContainer.innerHTML = `<input type="text" class="form-control form-control-sm fw-medium q-title-input" value="${currentTitleVal}" placeholder="Nhập nội dung câu hỏi (Ví dụ: Câu 1. Ai là...)">`;
+        }
+    }
+    
+    // Re-render lại khu vực đáp án tương ứng
+    const optionsContainer = block.querySelector('.options-container');
+    optionsContainer.innerHTML = generateOptionsMarkup(newType);
+
+    // Lắng nghe lại các sự kiện nhập liệu của khối mới sinh ra
+    bindBlockInputEvents(block);
+}
+
+function addQuestionBlock(type, qData = null) {
+    const wrapper = document.getElementById('questionsWrapper');
+    if (!wrapper) return;
+
+    blockCounter++;
+    const currentId = blockCounter;
+
+    // Nếu thêm câu hỏi mới một cách thủ công (không phải do khôi phục khi sửa đề)
+    if (qData === null && blockCounter > 1) {
+        isDataChanged = true;
+    }
+
+    const isDoanVan = (type === 'doan_van');
+    const selectDropdownHtml = isDoanVan ? '' : `
+        <select class="form-select form-select-sm type-select style-select w-auto fw-bold text-secondary" onchange="changeQuestionType(${currentId})">
+            <option value="trac_nghiem" ${type === 'trac_nghiem' ? 'selected' : ''}>Multiple Choice (Trắc nghiệm)</option>
+            <option value="tu_luan" ${type === 'tu_luan' ? 'selected' : ''}>Short Answer (Tự luận / Điền từ)</option>
+        </select>
+    `;
+
+    const questionBlock = `
+        <div class="card p-3 mb-3 border question-item shadow-sm bg-white" data-type="${type}" id="block_${currentId}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2 flex-grow-1">
+                    <i class="bi bi-grid-3x2-gap-vertical text-muted fs-5"></i>
+                    ${selectDropdownHtml}
+                    ${isDoanVan ? '<span class="badge bg-info text-dark fw-bold"><i class="bi bi-file-text-fill"></i> ĐOẠN VĂN GHI CHÚ BTC</span>' : ''}
+                </div>
+                <button class="btn btn-sm btn-link text-danger p-0 border-0 text-decoration-none" onclick="removeBlock(${currentId})">
+                    <i class="bi bi-trash3-fill"></i> Xóa mục
+                </button>
+            </div>
+            
+            <div class="mb-3 title-input-container">
+                ${isDoanVan ? 
+                    `<textarea class="form-control form-control-sm fw-medium q-title-input" rows="3" placeholder="Nhập văn bản ghi chú / hướng dẫn thi của BTC tại đây...">${qData?.title || ''}</textarea>` :
+                    `<input type="text" class="form-control form-control-sm fw-medium q-title-input" value="${qData?.title || ''}" placeholder="Nhập nội dung câu hỏi (Ví dụ: Câu 1. Nội dung câu hỏi...)">`
+                }
+            </div>
+            
+            <div class="options-container">
+                ${generateOptionsMarkup(type, qData)}
+            </div>
+        </div>`;
+
+    wrapper.insertAdjacentHTML('beforeend', questionBlock);
+    const element = document.getElementById(`block_${currentId}`);
+    element.scrollIntoView({ behavior: 'smooth' });
+
+    bindBlockInputEvents(element);
+}
+
+// Hàm ràng buộc lắng nghe thay đổi ký tự để theo dõi trạng thái dữ liệu thô
+function bindBlockInputEvents(blockElement) {
+    blockElement.querySelectorAll('input, textarea, select').forEach(input => {
+        input.addEventListener('input', () => {
+            isDataChanged = true;
+        });
+    });
+}
+
+// Trigger hiển thị Modal xác nhận xóa mục
+function removeBlock(id) {
+    const totalBlocks = document.querySelectorAll('#questionsWrapper .question-item').length;
+    if (totalBlocks <= 1) {
+        showToast("Đề thi bắt buộc phải giữ lại ít nhất 1 khối nội dung!", "warning");
+        return;
+    }
+    
+    // Lưu ID mục muốn xóa và mở Bootstrap Modal
+    activeDeleteBlockId = id;
+    const myModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    myModal.show();
+}
+
+// Lắng nghe sự kiện click nút "Đồng ý xóa" bên trong Modal cấu hình tĩnh
+document.getElementById('btnConfirmDelete').addEventListener('click', function() {
+    if (activeDeleteBlockId !== null) {
+        const block = document.getElementById(`block_${activeDeleteBlockId}`);
+        if (block) {
+            block.remove();
+            isDataChanged = true; // Đánh dấu có sự thay đổi dữ liệu
+            showToast("Đã xóa mục thành công!", "success");
+        }
+        activeDeleteBlockId = null;
+    }
+    // Đóng modal sau khi xử lý xong
+    const modalEl = document.getElementById('deleteConfirmModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+    if (modalInstance) modalInstance.hide();
+});
 
 async function loadExistingExamData(examId) {
     try {
         const snapshot = await database.ref(`exams/${examId}`).once('value');
         const exam = snapshot.val();
-        
         if (!exam) {
-            showToast("Không tìm thấy dữ liệu đề thi cần chỉnh sửa!", "danger");
+            showToast("Không tìm thấy dữ liệu bộ đề thi này!", "danger");
             return;
         }
 
-        if (document.getElementById('examId')) {
-            document.getElementById('examId').value = examId;
-            document.getElementById('examId').disabled = true; 
-        }
-        if (document.getElementById('examSubject')) {
-            document.getElementById('examSubject').value = exam.subject || "";
-        }
-        if (document.getElementById('examTime')) {
-            document.getElementById('examTime').value = exam.time ? parseInt(exam.time) : "";
-        }
-        if (document.getElementById('examExpired')) {
-            document.getElementById('examExpired').value = (exam.expired && exam.expired !== "Không giới hạn") ? exam.expired : "";
-        }
+        document.getElementById('examId').value = examId;
+        document.getElementById('examId').disabled = true; 
+        document.getElementById('examSubject').value = exam.subject || "";
+        document.getElementById('examTime').value = exam.time ? parseInt(exam.time) : "";
+        document.getElementById('examExpired').value = (exam.expired && exam.expired !== "Không giới hạn") ? exam.expired : "";
 
         const wrapper = document.getElementById('questionsWrapper');
-        if (!wrapper) {
-            showToast("Lỗi hệ thống: Không tìm thấy vùng hiển thị câu hỏi!", "danger");
-            return;
-        }
-
         wrapper.innerHTML = '';
-        questionCounter = 0;
+        blockCounter = 0;
 
-        if (exam.questions && Object.keys(exam.questions).length > 0) {
-            const sortedQKeys = Object.keys(exam.questions).sort((a, b) => {
-                const numA = parseInt(a.replace(/[^0-9]/g, '')) || 0;
-                const numB = parseInt(b.replace(/[^0-9]/g, '')) || 0;
-                return numA - numB;
+        if (exam.questions) {
+            const sortedKeys = Object.keys(exam.questions).sort((a, b) => {
+                return (parseInt(a.replace(/[^0-9]/g, '')) || 0) - (parseInt(b.replace(/[^0-9]/g, '')) || 0);
             });
 
-            sortedQKeys.forEach((qKey) => {
-                const qData = exam.questions[qKey];
-                const qType = qData.type || "trac_nghiem";
-                
-                questionCounter++;
-                const currentIdx = questionCounter;
-
-                let optionsHtml = '';
-                if (qType === 'trac_nghiem') {
-                    optionsHtml = `
-                        <div class="row g-2 option-group">
-                            <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">A</span><input type="text" class="form-control opt-a" value="${qData.options?.A || ''}" placeholder="Đáp án A"></div></div>
-                            <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">B</span><input type="text" class="form-control opt-b" value="${qData.options?.B || ''}" placeholder="Đáp án B"></div></div>
-                            <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">C</span><input type="text" class="form-control opt-c" value="${qData.options?.C || ''}" placeholder="Đáp án C"></div></div>
-                            <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">D</span><input type="text" class="form-control opt-d" value="${qData.options?.D || ''}" placeholder="Đáp án D"></div></div>
-                        </div>
-                        <div class="mt-2 row align-items-center">
-                            <div class="col-auto"><label class="form-label small fw-bold text-success mb-0">Đáp án đúng trắc nghiệm:</label></div>
-                            <div class="col-auto">
-                                <select class="form-select form-select-sm correct-ans-select">
-                                    <option value="A" ${qData.correctAnswer === 'A' ? 'selected' : ''}>Đáp án A</option>
-                                    <option value="B" ${qData.correctAnswer === 'B' ? 'selected' : ''}>Đáp án B</option>
-                                    <option value="C" ${qData.correctAnswer === 'C' ? 'selected' : ''}>Đáp án C</option>
-                                    <option value="D" ${qData.correctAnswer === 'D' ? 'selected' : ''}>Đáp án D</option>
-                                </select>
-                            </div>
-                        </div>`;
-                } else {
-                    optionsHtml = `
-                        <div class="alert alert-secondary p-2 mb-1 small text-muted"><i class="bi bi-info-circle-fill me-1"></i>Học sinh sẽ làm bài bằng cách gõ nội dung văn bản tự do vào ô trống đoạn văn.</div>
-                        <div class="row align-items-center mt-2">
-                            <div class="col-auto"><label class="form-label small fw-bold text-amber-700 mb-0">Từ khóa/Đáp án mẫu (Nếu có):</label></div>
-                            <div class="col-md-6">
-                                <input type="text" class="form-control form-control-sm correct-ans-input" value="${qData.correctAnswer || ''}" placeholder="Ví dụ: 1234 hoặc bỏ trống nếu chấm tay">
-                            </div>
-                        </div>`;
-                }
-
-                const questionBlock = `
-                    <div class="card p-3 mb-3 border question-item shadow-sm" data-type="${qType}" id="q_block_${currentIdx}">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="badge ${qType === 'tu_luan' ? 'bg-warning text-dark' : 'bg-primary'} fw-bold text-uppercase">
-                                Câu ${currentIdx} - ${qType === 'tu_luan' ? 'Tự luận' : 'Trắc nghiệm'}
-                            </span>
-                            <button class="btn btn-sm btn-link text-danger p-0 border-0" onclick="removeQuestion(${currentIdx})"><i class="bi bi-trash-fill"></i> Xóa câu</button>
-                        </div>
-                        <div class="mb-2">
-                            <input type="text" class="form-control form-control-sm fw-medium q-title-input" value="${qData.title || ''}" placeholder="Nhập câu hỏi tại đây...">
-                        </div>
-                        <div class="options-container">${optionsHtml}</div>
-                    </div>`;
-                
-                wrapper.insertAdjacentHTML('beforeend', questionBlock);
+            sortedKeys.forEach((key) => {
+                const qData = exam.questions[key];
+                addQuestionBlock(qData.type || 'trac_nghiem', qData);
             });
-            showToast(`Đã tải thành công bộ đề cũ gồm ${questionCounter} câu hỏi!`, "success");
+            
+            // Đặt lại flag sau khi khôi phục thành công (tránh hiểu nhầm là có chỉnh sửa)
+            isDataChanged = false;
+            showToast("Đã khôi phục thành công cấu trúc dữ liệu đề thi!", "success");
         }
     } catch(err) {
-        showToast("Lỗi đồng bộ dữ liệu chỉnh sửa: " + err.message, "danger");
+        showToast("Lỗi đồng bộ dữ liệu sửa đổi: " + err.message, "danger");
     }
-}
-
-function addQuestion(type) {
-    const wrapper = document.getElementById('questionsWrapper');
-    if (!wrapper) return;
-
-    questionCounter++;
-    const currentIdx = questionCounter;
-    let optionsHtml = '';
-
-    if (type === 'trac_nghiem') {
-        optionsHtml = `
-            <div class="row g-2 option-group">
-                <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">A</span><input type="text" class="form-control opt-a" placeholder="Đáp án A"></div></div>
-                <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">B</span><input type="text" class="form-control opt-b" placeholder="Đáp án B"></div></div>
-                <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">C</span><input type="text" class="form-control opt-c" placeholder="Đáp án C"></div></div>
-                <div class="col-md-6"><div class="input-group input-group-sm"><span class="input-group-text bg-light fw-bold">D</span><input type="text" class="form-control opt-d" placeholder="Đáp án D"></div></div>
-            </div>
-            <div class="mt-2 row align-items-center">
-                <div class="col-auto"><label class="form-label small fw-bold text-success mb-0">Đáp án đúng trắc nghiệm:</label></div>
-                <div class="col-auto">
-                    <select class="form-select form-select-sm correct-ans-select">
-                        <option value="A">Đáp án A</option>
-                        <option value="B">Đáp án B</option>
-                        <option value="C">Đáp án C</option>
-                        <option value="D">Đáp án D</option>
-                    </select>
-                </div>
-            </div>`;
-    } else {
-        optionsHtml = `
-            <div class="alert alert-secondary p-2 mb-1 small text-muted"><i class="bi bi-info-circle-fill me-1"></i>Học sinh sẽ làm bài bằng cách gõ nội dung văn bản tự do vào ô trống đoạn văn.</div>
-            <div class="row align-items-center mt-2">
-                <div class="col-auto"><label class="form-label small fw-bold text-amber-700 mb-0">Từ khóa/Đáp án mẫu (Nếu có):</label></div>
-                <div class="col-md-6">
-                    <input type="text" class="form-control form-control-sm correct-ans-input" placeholder="Ví dụ: 1234 hoặc bỏ trống nếu chấm tay">
-                </div>
-            </div>`;
-    }
-
-    const questionBlock = `
-        <div class="card p-3 mb-3 border question-item shadow-sm" data-type="${type}" id="q_block_${currentIdx}">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="badge ${type === 'tu_luan' ? 'bg-warning text-dark' : 'bg-primary'} fw-bold text-uppercase">
-                    Câu ${currentIdx} - ${type === 'tu_luan' ? 'Tự luận' : 'Trắc nghiệm'}
-                </span>
-                <button class="btn btn-sm btn-link text-danger p-0 border-0" onclick="removeQuestion(${currentIdx})"><i class="bi bi-trash-fill"></i> Xóa câu</button>
-            </div>
-            <div class="mb-2">
-                <input type="text" class="form-control form-control-sm fw-medium q-title-input" placeholder="Nhập nội dung câu hỏi tại đây...">
-            </div>
-            <div class="options-container">${optionsHtml}</div>
-        </div>`;
-
-    wrapper.insertAdjacentHTML('beforeend', questionBlock);
-}
-
-// [LOGIC ĐÃ CẬP NHẬT]: Chặn không cho xóa câu hỏi đầu tiên (duy nhất) trong đề thi
-function removeQuestion(idx) {
-    const totalCurrentBlocks = document.querySelectorAll('#questionsWrapper .question-item').length;
-    
-    if (totalCurrentBlocks <= 1) {
-        showToast("Không thể xóa! Đề thi bắt buộc phải có ít nhất 1 câu hỏi duy nhất.", "warning");
-        return;
-    }
-
-    const block = document.getElementById(`q_block_${idx}`);
-    if (block) {
-        block.remove();
-        reIndexQuestions();
-    }
-}
-
-function reIndexQuestions() {
-    const blocks = document.querySelectorAll('#questionsWrapper .question-item');
-    questionCounter = 0;
-    blocks.forEach((block) => {
-        questionCounter++;
-        const currentIdx = questionCounter;
-        block.id = `q_block_${currentIdx}`;
-        
-        const badge = block.querySelector('.badge');
-        const type = block.getAttribute('data-type');
-        if (badge) {
-            badge.className = `badge ${type === 'tu_luan' ? 'bg-warning text-dark' : 'bg-primary'} fw-bold text-uppercase`;
-            badge.innerText = `Câu ${currentIdx} - ${type === 'tu_luan' ? 'Tự luận' : 'Trắc nghiệm'}`;
-        }
-        
-        const deleteBtn = block.querySelector('button[onclick^="removeQuestion"]');
-        if (deleteBtn) {
-            deleteBtn.setAttribute('onclick', `removeQuestion(${currentIdx})`);
-        }
-    });
 }
 
 async function publishExam() {
@@ -303,56 +393,56 @@ async function publishExam() {
     const expired = document.getElementById('examExpired').value;
 
     if (!finalExamId || !subject || !time) {
-        showToast("Vui lòng điền đầy đủ Mã đề thi, Tên môn học và Thời gian làm bài!", "warning");
+        showToast("Vui lòng nhập đầy đủ Mã đề, Môn thi và Thời gian!", "warning");
         return;
     }
 
-    const questionBlocks = document.querySelectorAll('#questionsWrapper .question-item');
-    if (questionBlocks.length === 0) {
-        showToast("Đề thi phải có ít nhất 1 câu hỏi trở lên!", "warning");
+    const blocks = document.querySelectorAll('#questionsWrapper .question-item');
+    if (blocks.length === 0) {
+        showToast("Cấu trúc đề thi đang rỗng!", "warning");
         return;
     }
 
     let finalQuestionsObject = {};
-    let validationCheck = true;
+    let isValid = true;
 
-    questionBlocks.forEach((block, index) => {
-        const qId = `q_${index + 1}`;
+    blocks.forEach((block, index) => {
+        const qKey = `q_${index + 1}`;
         const type = block.getAttribute('data-type');
         const title = block.querySelector('.q-title-input').value.trim();
 
         if (!title) {
-            showToast(`Nội dung câu hỏi số ${index + 1} đang để trống!`, "warning");
-            validationCheck = false;
+            showToast(`Nội dung mục vị trí thứ ${index + 1} đang bị để trống!`, "warning");
+            isValid = false;
             return;
         }
 
-        let questionPayload = { type: type, title: title };
+        let payload = { type: type, title: title };
 
         if (type === 'trac_nghiem') {
             const optA = block.querySelector('.opt-a').value.trim();
             const optB = block.querySelector('.opt-b').value.trim();
             const optC = block.querySelector('.opt-c').value.trim();
             const optD = block.querySelector('.opt-d').value.trim();
-            const correctAnswer = block.querySelector('.correct-ans-select').value;
+            const correctAns = block.querySelector('.correct-ans-select').value;
 
             if (!optA || !optB || !optC || !optD) {
-                showToast(`Vui lòng điền đủ 4 đáp án A, B, C, D cho câu hỏi số ${index + 1}!`, "warning");
-                validationCheck = false;
+                showToast(`Vui lòng điền đủ 4 phương án cho câu hỏi: "${title.substring(0, 20)}..."`, "warning");
+                isValid = false;
                 return;
             }
-
-            questionPayload.options = { A: optA, B: optB, C: optC, D: optD };
-            questionPayload.correctAnswer = correctAnswer;
-        } else {
-            const correctAnswer = block.querySelector('.correct-ans-input').value.trim();
-            questionPayload.correctAnswer = correctAnswer;
+            payload.options = { A: optA, B: optB, C: optC, D: optD };
+            payload.correctAnswer = correctAns;
+        } else if (type === 'tu_luan') {
+            payload.correctAnswer = block.querySelector('.correct-ans-input').value.trim();
+        } else if (type === 'doan_van') {
+            payload.correctAnswer = "";
         }
 
-        finalQuestionsObject[qId] = questionPayload;
+        finalQuestionsObject[qKey] = payload;
     });
 
-    if (!validationCheck) return;
+    if (!isValid) return;
 
     const finalExamPayload = {
         subject: subject,
@@ -364,22 +454,22 @@ async function publishExam() {
     try {
         if (isEditMode) {
             await database.ref(`exams/${currentEditId}`).set(finalExamPayload);
-            showToast(`Cập nhật đề thi [${currentEditId.toUpperCase()}] thành công!`, "success");
+            showToast("Cập nhật bộ đề thi thành công!", "success");
         } else {
             const checkSnap = await database.ref(`exams/${finalExamId}`).once('value');
             if (checkSnap.exists()) {
-                showToast("Mã đề thi này đã tồn tại trong hệ thống! Vui lòng chọn mã đề khác.", "danger");
+                showToast("Mã đề thi đã tồn tại trên hệ thống, vui lòng đổi mã!", "danger");
                 return;
             }
             await database.ref(`exams/${finalExamId}`).set(finalExamPayload);
-            showToast("Tạo và xuất bản đề thi mới thành công!", "success");
+            showToast("Tạo mới và xuất bản đề thi thành công!", "success");
         }
         
-        setTimeout(() => {
-            window.location.replace('quan-ly-de-thi.html');
-        }, 1500);
+        // Tắt cờ đánh dấu thay đổi để không kích hoạt hộp thoại chặn cảnh báo thoát trang khi đổi trang
+        isDataChanged = false;
+        setTimeout(() => { window.location.replace('quan-ly-de-thi.html'); }, 1200);
     } catch (error) {
-        showToast("Lỗi đẩy dữ liệu lên Firebase: " + error.message, "danger");
+        showToast("Lỗi kết nối Firebase: " + error.message, "danger");
     }
 }
 
@@ -388,13 +478,12 @@ function showToast(message, type = "success") {
     if (!container) return;
     const id = 'toast_' + Date.now();
     const html = `
-        <div id="${id}" class="toast align-items-center text-white bg-${type} border-0 mb-2 shadow" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="${id}" class="toast align-items-center text-white bg-${type} border-0 mb-2 shadow" role="alert">
           <div class="d-flex">
             <div class="toast-body fw-medium"><i class="bi bi-info-circle-fill me-2"></i>${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
           </div>
-        </div>
-    `;
+        </div>`;
     container.insertAdjacentHTML('beforeend', html);
     const toastElement = document.getElementById(id);
     const bsToast = new bootstrap.Toast(toastElement, { delay: 2500 });
