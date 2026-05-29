@@ -16,8 +16,14 @@
         .timer-box.timeout-warning { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; animation: pulse-border 1s infinite; }
         @keyframes pulse-border { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
         #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 100000; width: 350px; }
-
-        /* 🔥 FIX TRIỆT ĐỂ: Khóa chết căn lề trái, phá vỡ căn giữa từ các file bên ngoài */
+        
+        /* Cấu trúc ẩn các Phần không thuộc Trang hiện tại */
+        .exam-section-page {
+            display: none;
+        }
+        .exam-section-page.active-page {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -55,8 +61,10 @@
                     </div>
                 </div>
                 <hr class="mt-2">
+                
                 <div id="questionsContainer"></div>
-                <div id="actionBtnContainer" class="mt-3"></div>
+                
+                <div id="actionBtnContainer" class="mt-4 pt-3 border-top d-flex justify-content-between gap-3"></div>
             </div>
         </div>
     </div>
@@ -79,6 +87,10 @@ let activeExam = null;
 let isExamInProgress = false;
 let screenViolationCount = 0;
 let examTimerInterval = null;
+
+// Quản lý phân trang đề thi
+let currentPageIndex = 0;
+let totalPagesCount = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -124,11 +136,6 @@ async function checkRunningExamState() {
 
                 renderQuestions(activeExam.questions);
                 
-                const btnContainer = document.getElementById('actionBtnContainer');
-                if (btnContainer) {
-                    btnContainer.innerHTML = `<button class="btn btn-success w-100 fw-bold shadow-sm" onclick="submitExam()">Nộp bài và lưu kết quả</button>`;
-                }
-
                 startScreenWindowTracker();
 
                 const startTimeMs = parseInt(savedStartTime);
@@ -209,8 +216,6 @@ async function startExam(examId) {
         document.getElementById('workspaceTime').innerText = activeExam.time;
         document.getElementById('workspaceExpired').innerText = activeExam.expired || "Không giới hạn";
 
-        const btnContainer = document.getElementById('actionBtnContainer');
-
         if (isLocked) {
             document.getElementById('questionsContainer').innerHTML = `
                 <div class="alert alert-danger text-center p-4">
@@ -218,14 +223,13 @@ async function startExam(examId) {
                     <h4 class="mt-2">Tài khoản đã bị khóa</h4>
                     <p>Tài khoản này hiện đang bị khóa, do đó bạn sẽ không thể thực hiện bài thi này</p>
                 </div>`;
-            btnContainer.innerHTML = `<a href="dashboard.html" class="btn btn-secondary w-100"><i class="bi bi-arrow-left"></i> Quay lại Dashboard</a>`;
+            document.getElementById('actionBtnContainer').innerHTML = `<a href="dashboard.html" class="btn btn-secondary w-100"><i class="bi bi-arrow-left"></i> Quay lại Dashboard</a>`;
             document.getElementById('cameraMonitorBox').style.display = 'none';
         } else {
             renderQuestions(activeExam.questions);
             startScreenWindowTracker();
             initExamTimer(activeExam.time, examId);
             document.getElementById('cameraMonitorBox').style.display = 'block';
-            btnContainer.innerHTML = `<button class="btn btn-success w-100 fw-bold shadow-sm" onclick="submitExam()">Nộp bài và lưu kết quả</button>`;
         }
     } catch (error) {
         showToast("Lỗi: " + error.message, "danger");
@@ -317,10 +321,36 @@ function renderQuestions(questions) {
         return (parseInt(a.replace(/[^0-9]/g, '')) || 0) - (parseInt(b.replace(/[^0-9]/g, '')) || 0);
     });
 
-    sortedQKeys.forEach((qId, idx) => {
+    let pages = [];
+    let currentPageHtml = '';
+    let visibleQuestionIndex = 1;
+
+    sortedQKeys.forEach((qId) => {
         const question = questions[qId];
         const qType = question.type || 'trac_nghiem';
-        
+
+        // Gặp khối PHẦN (SECTION) -> Chắc chắn thực hiện ngắt trang
+        if (qType === 'phan_muc') {
+            if (currentPageHtml.trim() !== '') {
+                pages.push(currentPageHtml);
+                currentPageHtml = '';
+            }
+            
+            const hasTitle = question.title && question.title.trim() !== '';
+            const hasDesc = question.description && question.description.trim() !== '';
+            
+            // Nếu có chữ thì mới hiển thị giao diện banner phần, không thì ẩn hoàn toàn giống Google Forms
+            if (hasTitle || hasDesc) {
+                currentPageHtml += `
+                    <div class="card p-3 mb-4 bg-dark text-white shadow-sm border-0 rounded-3">
+                        ${hasTitle ? `<h4 class="fw-bold mb-1 text-warning"><i class="bi bi-segmented-nav me-2"></i>${question.title}</h4>` : ''}
+                        ${hasDesc ? `<p class="mb-0 small text-light opacity-75">${question.description}</p>` : ''}
+                    </div>`;
+            }
+            return; // Ngăn không cho chạy xuống code xử lý câu hỏi bên dưới
+        }
+
+        // Xử lý các khối câu hỏi thông thường và đoạn văn
         let answerAreaHtml = '';
         let wrapperClass = 'mb-4 p-3 border-bottom rounded bg-white shadow-sm question-block-wrapper';
 
@@ -341,26 +371,94 @@ function renderQuestions(questions) {
             if (question.options) {
                 Object.keys(question.options).forEach(optKey => {
                     optionsHtml += `
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="${qId}" value="${optKey}">
-                            <label class="form-check-label">${optKey}. ${question.options[optKey]}</label>
+                        <div class="form-check my-2">
+                            <input class="form-check-input" type="radio" name="${qId}" value="${optKey}" id="${qId}_${optKey}">
+                            <label class="form-check-label ps-1" for="${qId}_${optKey}">${optKey}. ${question.options[optKey]}</label>
                         </div>`;
                 });
             }
             answerAreaHtml = optionsHtml;
         }
 
-        container.insertAdjacentHTML('beforeend', `
+        let questionHeaderHtml = '';
+        if (qType !== 'doan_van') {
+            questionHeaderHtml = `<div class="fw-bold question-title-text mb-2 text-dark" style="font-size: 1.05rem;">Câu ${visibleQuestionIndex}: ${question.title}</div>`;
+            visibleQuestionIndex++; // Chỉ tăng số thứ tự câu đối với trắc nghiệm / tự luận
+        }
+
+        currentPageHtml += `
             <div class="${wrapperClass}">
-                ${qType !== 'doan_van' ? `
-                    <div class="fw-bold question-title-text">
-                        Câu ${idx + 1}: ${question.title}
-                    </div>
-                ` : ''}
+                ${questionHeaderHtml}
                 ${answerAreaHtml}
+            </div>
+        `;
+    });
+
+    // Thu thập nốt dữ liệu trang cuối cùng vào mảng trang
+    if (currentPageHtml.trim() !== '') {
+        pages.push(currentPageHtml);
+    }
+
+    totalPagesCount = pages.length;
+    currentPageIndex = 0;
+
+    // Tiến hành render các trang ra DOM
+    pages.forEach((pageContentHtml, index) => {
+        container.insertAdjacentHTML('beforeend', `
+            <div class="exam-section-page ${index === 0 ? 'active-page' : ''}" id="exam_page_${index}">
+                ${pageContentHtml}
             </div>
         `);
     });
+
+    // Cập nhật lại trạng thái hiển thị các nút điều hướng (Quay lại / Tiếp theo / Nộp bài)
+    updateNavigationButtons();
+}
+
+function updateNavigationButtons() {
+    const btnContainer = document.getElementById('actionBtnContainer');
+    if (!btnContainer) return;
+    
+    // Đề bài không phân trang/phần
+    if (totalPagesCount <= 1) {
+        btnContainer.innerHTML = `<button class="btn btn-success w-100 btn-lg fw-bold shadow" onclick="submitExam()">Nộp bài và lưu kết quả</button>`;
+        return;
+    }
+
+    let leftBtnHtml = '';
+    let rightBtnHtml = '';
+
+    if (currentPageIndex === 0) {
+        // Trang đầu tiên: Chỉ có nút Tiếp tục
+        leftBtnHtml = `<div></div>`; // Giữ khoảng trống thẩm mỹ Flexbox
+        rightBtnHtml = `<button class="btn btn-primary btn-lg px-4 fw-bold shadow-sm" onclick="changePage(1)">Tiếp tục <i class="bi bi-arrow-right-short"></i></button>`;
+    } else if (currentPageIndex > 0 && currentPageIndex < totalPagesCount - 1) {
+        // Các trang giữa: Có Quay lại và Tiếp theo
+        leftBtnHtml = `<button class="btn btn-secondary btn-lg px-4 fw-bold shadow-sm" onclick="changePage(-1)"><i class="bi bi-arrow-left-short"></i> Quay lại</button>`;
+        rightBtnHtml = `<button class="btn btn-primary btn-lg px-4 fw-bold shadow-sm" onclick="changePage(1)">Tiếp theo <i class="bi bi-arrow-right-short"></i></button>`;
+    } else if (currentPageIndex === totalPagesCount - 1) {
+        // Trang cuối cùng: Có Quay lại và Nộp bài
+        leftBtnHtml = `<button class="btn btn-secondary btn-lg px-4 fw-bold shadow-sm" onclick="changePage(-1)"><i class="bi bi-arrow-left-short"></i> Quay lại</button>`;
+        rightBtnHtml = `<button class="btn btn-success btn-lg px-5 fw-bold shadow animate-pulse" onclick="submitExam()"><i class="bi bi-cloud-arrow-up-fill me-1"></i> Nộp bài và lưu kết quả</button>`;
+    }
+
+    btnContainer.innerHTML = leftBtnHtml + rightBtnHtml;
+}
+
+function changePage(direction) {
+    const newIndex = currentPageIndex + direction;
+    if (newIndex >= 0 && newIndex < totalPagesCount) {
+        // Ẩn trang hiện tại
+        document.getElementById(`exam_page_${currentPageIndex}`).classList.remove('active-page');
+        // Cập nhật chỉ mục trang
+        currentPageIndex = newIndex;
+        // Hiển thị trang mới
+        document.getElementById(`exam_page_${currentPageIndex}`).classList.add('active-page');
+        // Cuộn màn hình lên đầu vùng thi làm bài
+        document.getElementById('quizWorkspace').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Cập nhật lại thanh điều hướng nút bấm
+        updateNavigationButtons();
+    }
 }
 
 async function submitExam() {
@@ -383,7 +481,7 @@ async function submitExam() {
 
     for (let qId in activeExam.questions) {
         const q = activeExam.questions[qId];
-        if (q.type === 'doan_van') continue; 
+        if (q.type === 'doan_van' || q.type === 'phan_muc') continue; 
         
         totalQuestions++;
         const studentAns = String(selectedAnswers[qId] || '').trim().toLowerCase();

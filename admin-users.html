@@ -67,6 +67,23 @@
             from { width: 100%; }
             to { width: 0%; }
         }
+
+        /* Giao diện bổ sung cho khối bài làm chi tiết */
+        .admin-section-banner {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: #fff;
+            border-left: 5px solid #ffc107;
+        }
+        .question-review-item {
+            background-color: #ffffff;
+            border: 1px solid #e3e6f0;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .question-review-item:hover {
+            border-color: #b7b9cc;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -77,16 +94,12 @@
     <a class="navbar-brand fw-bold text-danger" href="#">🛡️ VIEEDU – Trang Quản Trị</a>
     <div class="navbar-nav ms-auto">
         <button id="btnManagePassword" class="btn btn-sm btn-outline-warning me-2" data-bs-toggle="modal" data-bs-target="#adminPasswordModal" style="display: none;">
-    <i class="bi bi-key-fill"></i> <span id="lblManagePasswordBtn">Quản lý mật khẩu</span>
-</button>
+            <i class="bi bi-key-fill"></i> <span id="lblManagePasswordBtn">Quản lý mật khẩu</span>
+        </button>
         <button class="btn btn-sm btn-outline-light" onclick="logout()">Đăng xuất <i class="bi bi-box-arrow-right"></i></button>
     </div>
   </div>
 </nav>
-
-
-<video id="monitorCameraVideo" autoplay muted style="display:none; width:100px; height:100px;"></video>
-<canvas id="monitorCanvas" style="display:none;"></canvas>
 
 <div class="container-fluid mt-4 px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -132,7 +145,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="card shadow-sm border-0">
         <div class="table-responsive">
             <table class="table table-bordered table-striped align-middle m-0" id="userTable">
@@ -161,6 +174,7 @@
     </div>
 </div>
 
+<!-- CÁC MODAL HỆ THỐNG -->
 <div class="modal fade" id="lockModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -239,14 +253,15 @@
     </div>
 </div>
 
+<!-- MODAL XEM CHI TIẾT TIẾN TRÌNH & ĐÁP ÁN BÀI LÀM -->
 <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold"><i class="bi bi-eye-fill"></i> Nhật ký & Trạng thái làm bài chi tiết</h5>
+                <h5 class="modal-title fw-bold"><i class="bi bi-eye-fill"></i> Nhật ký & Trạng thái bài làm chi tiết</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="background-color: #f8f9fc;">
                 <div id="statusDetailsContent"></div>
             </div>
         </div>
@@ -322,7 +337,6 @@
                     <select id="selectExam" class="form-select"></select>
                 </div>
                 <button class="btn btn-primary w-100" onclick="assignExamToStudent()">Giao đề này</button>
-                
                 <hr>
                 <h6>Danh sách bài đã giao:</h6>
                 <ul id="assignedExamsList" class="list-group mt-2"></ul>
@@ -345,6 +359,7 @@
     </div>
 </div>
 
+<!-- THƯ VIỆN LIÊN KẾT -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -355,6 +370,7 @@
 <script>
 let localUsersCache = {};
 let isModelsLoaded = false;
+let currentStudentUsername = '';
 
 async function openGiaoDeModal(username) {
     currentStudentUsername = username;
@@ -362,7 +378,7 @@ async function openGiaoDeModal(username) {
     
     const examsSnap = await database.ref('exams').once('value');
     const select = document.getElementById('selectExam');
-    select.innerHTML = '<option value="">-- Vui lòng chọn bài thi mà bạn muốn giao--</option>';
+    select.innerHTML = '<option value="">-- Chọn bài thi --</option>';
     
     examsSnap.forEach(snap => {
         const examId = snap.key;
@@ -393,7 +409,7 @@ async function renderAssignedList() {
 
 async function assignExamToStudent() {
     const examId = document.getElementById('selectExam').value;
-    if (!examId) return showToast("Vui lòng chọn đề thi!","warning");
+    if (!examId) return alert("Vui lòng chọn đề thi!");
     
     await database.ref(`users/${currentStudentUsername}/assignedExams/${examId}`).set({
         status: "Chưa làm",
@@ -447,7 +463,6 @@ function loadRealtimeUsers() {
                 examBadge = `<span class="badge bg-warning text-dark animate-pulse">🟡 Đang làm bài</span>`;
             } else if (currentExamStatus === 'Đã nộp bài' || currentExamStatus === 'Đã nộp bài thi') {
                 let completedExamsList = [];
-                
                 if (user.assignedExams) {
                     Object.keys(user.assignedExams).forEach(examId => {
                         const examDetails = user.assignedExams[examId];
@@ -481,9 +496,9 @@ function loadRealtimeUsers() {
                             <i class="bi bi-eye"></i> Kiểm tra
                         </button>
                         <button class="btn btn-outline-success" onclick="openPublishModal('${username}')">
-                            <i class="bi bi-check-circle"></i> Công bố
+                            <i class="bi bi-check-circle"></i> Công báo
                         </button>
-                        <button class="btn btn-sm btn-info" onclick="openGiaoDeModal('${user.username}')">
+                        <button class="btn btn-sm btn-info" onclick="openGiaoDeModal('${username}')">
                             Giao đề
                         </button>
                         ${isLocked ? 
@@ -505,7 +520,7 @@ function openLockModal(username, name, sbd) {
     document.getElementById('lockTargetName').value = name;
     document.getElementById('lockTargetSBD').value = sbd;
     document.getElementById('lockStartTime').value = new Date().toLocaleString('vi-VN');
-    document.getElementById('lockDuration').value = "Cho đến khi có phê duyệt mới từ BTC";
+    document.getElementById('lockDuration').value = "Cho đến khi có phê duyệt mới từ Admin";
     document.getElementById('lockReason').value = "";
     new bootstrap.Modal(document.getElementById('lockModal')).show();
 }
@@ -558,36 +573,37 @@ function askConfirmUnlock(username, fullName) {
     new bootstrap.Modal(document.getElementById('confirmUnlockModal')).show();
 }
 
-// BẢN FIX TOÀN DIỆN CHO CÂU HỎI TỰ LUẬN ĐOẠN VĂN
-function openStatusModal(username) {
+// =========================================================================
+// SỬA ĐỔI TOÀN DIỆN: ĐỐI CHIẾU ĐỀ GỐC ĐỂ BIẾT CÂU NÀO THUỘC PHẦN NÀO, ĐÁP ÁN GÌ
+// =========================================================================
+async function openStatusModal(username) {
     const user = localUsersCache[username];
     const container = document.getElementById('statusDetailsContent');
-    let examsHtml = `<p class="text-muted">Chưa thực hiện bài thi nào trong hệ thống.</p>`;
     
+    if (!user) {
+        container.innerHTML = `<div class="alert alert-danger">Không tìm thấy thông tin người dùng.</div>`;
+        return;
+    }
+
+    // 1. Thu thập nhật ký vi phạm tổng quan
     let globalLogsHtml = '<p class="text-success small mb-0"><i class="bi bi-check-circle-fill"></i> Không ghi nhận vi phạm chống gian lận nào từ hệ thống.</p>';
     let totalViolationsCount = 0;
     
-    if (user && user.violationLogs && typeof user.violationLogs === 'object') {
+    if (user.violationLogs && typeof user.violationLogs === 'object') {
         const logsArr = Object.values(user.violationLogs);
         totalViolationsCount = logsArr.length;
-        
         if (totalViolationsCount > 0) {
             globalLogsHtml = `<div class="log-timeline mt-2">`;
-            logsArr.forEach((log) => {
+            logsArr.forEach((log, idx) => {
                 let imgHtml = '';
                 if (log.evidence && log.evidence !== 'No-Image') {
-                    imgHtml = `<div class="mt-2"><img src="${log.evidence}" class="img-thumbnail" alt="Bằng chứng AI"></div>`;
+                    imgHtml = `<div class="mt-2"><img src="${log.evidence}" class="img-thumbnail" style="max-width:200px" alt="Bằng chứng AI"></div>`;
                 }
-                
-                const idxDisplay = log.violationIndex || (logsArr.indexOf(log) + 1);
-                const violationReason = log.reason || "Phát hiện vi phạm quy chế";
-                const violationTime = log.time || '';
-
                 globalLogsHtml += `
-                    <div class="log-item p-2 bg-light rounded mb-2" style="border-left: 3px solid #dc3545; padding-left: 10px;">
+                    <div class="log-item p-2 bg-light rounded mb-2">
                         <div class="d-flex justify-content-between fw-bold text-danger small">
-                            <span>⚠️ Lần ${idxDisplay}: ${violationReason}</span>
-                            <span class="text-muted"><i class="bi bi-clock"></i> ${violationTime}</span>
+                            <span>⚠️ Lần ${idx + 1}: ${log.reason || 'Vi phạm quy chế'}</span>
+                            <span class="text-muted"><i class="bi bi-clock"></i> ${log.time || ''}</span>
                         </div>
                         ${imgHtml}
                     </div>`;
@@ -595,81 +611,133 @@ function openStatusModal(username) {
             globalLogsHtml += `</div>`;
         }
     }
-    
-    if (user && user.assignedExams && Object.keys(user.assignedExams).length > 0) {
+
+    let examsHtml = `<p class="text-muted p-3 text-center">Chưa phân phối hoặc chưa có tiến trình làm bài thi nào.</p>`;
+
+    // 2. Nếu học sinh có danh sách đề thi, tiến hành bóc tách nâng cao
+    if (user.assignedExams && Object.keys(user.assignedExams).length > 0) {
         examsHtml = `<div class="accordion" id="examsAccordion">`;
         let index = 0;
+
         for (let examId in user.assignedExams) {
-            const exam = user.assignedExams[examId];
-            const isDone = exam && (exam.submitTime !== undefined || exam.status === "Đã hoàn thành");
             index++;
-            
-            let answersContentHtml = '';
-            
-            // GIẢI PHÁP AN TOÀN TUYỆT ĐỐI KHÔNG LO LỖI NULL/UNDEFINED OBJECT
-            let rawAnswers = {};
-            if (exam) {
-                // Lấy từ selectedAnswers nếu có
-                if (exam.selectedAnswers && typeof exam.selectedAnswers === 'object') {
-                    rawAnswers = Object.assign({}, exam.selectedAnswers);
+            const studentExamRecord = user.assignedExams[examId];
+            const isDone = studentExamRecord && (studentExamRecord.submitTime !== undefined || studentExamRecord.status === "Đã hoàn thành");
+
+            // Gom đáp án thực tế của thí sinh
+            let studentAnswers = {};
+            if (studentExamRecord) {
+                if (studentExamRecord.selectedAnswers && typeof studentExamRecord.selectedAnswers === 'object') {
+                    studentAnswers = Object.assign({}, studentExamRecord.selectedAnswers);
                 }
-                // Gom thêm các key q_ ở tầng gốc nếu có
-                Object.keys(exam).forEach(key => {
+                Object.keys(studentExamRecord).forEach(key => {
                     if (key.toLowerCase().trim().startsWith('q_')) {
-                        rawAnswers[key] = exam[key];
+                        studentAnswers[key] = studentExamRecord[key];
                     }
                 });
             }
 
-            // Lọc danh sách key bắt đầu bằng q_ và sắp xếp theo thứ tự số tăng dần (q_1, q_2, q_10...)
-            const questionKeys = Object.keys(rawAnswers)
-                .filter(k => k.toLowerCase().trim().startsWith('q_'))
-                .sort((a, b) => {
-                    const numA = parseInt(a.replace(/[^0-9]/g, '')) || 0;
-                    const numB = parseInt(b.replace(/[^0-9]/g, '')) || 0;
-                    return numA - numB;
+            // ĐỌC THÊM CẤU TRÚC ĐỀ GỐC TỪ FIREBASE ĐỂ LẤY PHẦN (SECTION) VÀ TIÊU ĐỀ
+            let examStructureQuestions = null;
+            try {
+                const examSnap = await database.ref(`exams/${examId}/questions`).once('value');
+                examStructureQuestions = examSnap.val();
+            } catch (e) {
+                console.error("Không tải được cấu trúc đề gốc: ", e);
+            }
+
+            let answersContentHtml = '';
+
+            if (examStructureQuestions && typeof examStructureQuestions === 'object') {
+                // Sắp xếp các câu hỏi của đề gốc theo thứ tự tăng dần số (q_1, q_2, ...)
+                const sortedQKeys = Object.keys(examStructureQuestions).sort((a, b) => {
+                    return (parseInt(a.replace(/[^0-9]/g, '')) || 0) - (parseInt(b.replace(/[^0-9]/g, '')) || 0);
                 });
 
-            if (questionKeys.length > 0) {
-                let questionsListHtml = '<div class="list-group shadow-sm rounded border">';
-                
-                questionKeys.forEach(qKey => {
-                    const studentAns = String(rawAnswers[qKey] || '').trim();
-                    
-                    // Lấy ra số thứ tự của câu hỏi để hiển thị (Ví dụ: "q_5" -> "5")
-                    let displayQuestionNum = qKey.replace(/[^0-9]/g, '');
-                    if (!displayQuestionNum) displayQuestionNum = qKey;
+                let questionsListHtml = '<div class="d-flex flex-column gap-3">';
+                let visibleQuestionIndex = 1;
+                let currentSectionTitle = "Phần chung / Mở đầu"; // Khởi tạo nếu đề không chia phần từ đầu
 
-                    // Nhận diện câu Trắc nghiệm: Độ dài bằng 1 và nằm trong khoảng từ A đến D
-                    const isTracNghiem = studentAns.length === 1 && /^[A-D]$/i.test(studentAns);
+                sortedQKeys.forEach((qKey) => {
+                    const qData = examStructureQuestions[qKey];
+                    const qType = qData.type || 'trac_nghiem';
+                    const sAns = String(studentAnswers[qKey] || '').trim();
 
-                    if (!isTracNghiem) {
-                        // GIAO DIỆN KHỐI TỰ LUẬN CHUẨN (Hỗ trợ xuống dòng, bọc chữ an toàn)
+                    // Nếu gặp khối PHẦN MỤC -> Cập nhật tiêu đề Phần hiện tại để dán nhãn cho các câu bên dưới
+                    if (qType === 'phan_muc') {
+                        currentSectionTitle = qData.title && qData.title.trim() !== '' ? qData.title : "Phần mục ẩn / Không tên";
                         questionsListHtml += `
-                            <div class="list-group-item p-3 bg-light text-start border-bottom">
-                                <div class="mb-2">
-                                    <span class="text-dark fw-bold">
-                                        <i class="bi bi-pencil-square text-warning me-2"></i>Câu ${displayQuestionNum} <span class="badge ms-1 fw-normal text-warning border border-warning" style="font-size:0.75rem; background-color: #fff3cd;">Tự luận</span>
-                                    </span>
-                                </div>
-                                <div class="p-3 bg-white border rounded text-dark shadow-sm" style="white-space: pre-wrap; word-break: break-word; min-height: 50px; font-size: 0.95rem; line-height: 1.6; border-left: 4px solid #ffc107 !important;">
-                                    ${studentAns ? studentAns : `<i class="text-muted">Thí sinh bỏ trống, không nhập nội dung câu trả lời.</i>`}
-                                </div>
+                            <div class="admin-section-banner p-2 px-3 rounded shadow-sm mt-2">
+                                <span class="fw-bold small text-warning text-uppercase"><i class="bi bi-segmented-nav me-1"></i> Cấu trúc thuộc:</span>
+                                <h6 class="m-0 fw-bold">${currentSectionTitle}</h6>
+                                ${qData.description ? `<small class="opacity-75 d-block text-light">${qData.description}</small>` : ''}
+                            </div>`;
+                        return; // Ngắt để không render thành khối câu hỏi
+                    }
+
+                    // Nếu là đoạn văn hỗ trợ ngữ liệu đề bài
+                    if (qType === 'doan_van') {
+                        questionsListHtml += `
+                            <div class="p-3 border rounded shadow-sm bg-light text-dark question-review-item">
+                                <div class="small text-muted fw-bold mb-1 text-uppercase text-secondary"><i class="bi bi-file-text"></i> Đoạn văn văn bản / Ngữ liệu đề bài</div>
+                                <div class="fw-medium text-dark" style="white-space: pre-wrap; font-size: 0.95rem;">${qData.title}</div>
+                            </div>`;
+                        return;
+                    }
+
+                    // Xử lý hiển thị nội dung câu hỏi Trắc nghiệm hoặc Tự luận
+                    let displayNum = visibleQuestionIndex;
+                    visibleQuestionIndex++;
+
+                    let answerBlockHtml = '';
+                    if (qType === 'tu_luan') {
+                        answerBlockHtml = `
+                            <div class="mt-2 p-3 bg-white border rounded shadow-sm" style="white-space: pre-wrap; word-break: break-word; min-height: 50px; font-size: 0.95rem; line-height: 1.5; border-left: 4px solid #ffc107 !important;">
+                                ${sAns ? `<strong class="text-dark">${sAns}</strong>` : `<i class="text-muted">Thí sinh bỏ trống, không nộp bài làm tự luận.</i>`}
                             </div>`;
                     } else {
-                        // GIAO DIỆN CÂU TRẮC NGHIỆM
-                        questionsListHtml += `
-                            <div class="list-group-item d-flex justify-content-between align-items-center py-3 text-start border-bottom bg-white">
-                                <span><i class="bi bi-check-circle text-success me-2"></i><strong>Câu ${displayQuestionNum}</strong> <span class="badge bg-light text-dark border ms-1 fw-normal" style="font-size:0.75rem">Trắc nghiệm</span></span>
-                                <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill shadow-sm">${studentAns.toUpperCase()}</span>
-                            </div>`;
+                        // Trắc nghiệm
+                        let optionItemsHtml = '';
+                        if (qData.options) {
+                            Object.keys(qData.options).forEach(optKey => {
+                                const isChosen = (sAns.toUpperCase() === optKey.toUpperCase());
+                                optionItemsHtml += `
+                                    <div class="p-2 border rounded my-1 d-flex align-items-center ${isChosen ? 'bg-primary text-white border-primary fw-bold' : 'bg-light text-muted'}" style="font-size: 0.9rem;">
+                                        <i class="bi ${isChosen ? 'bi-check-circle-fill me-2' : 'bi-circle me-2'}"></i>
+                                        <span>${optKey}. ${qData.options[optKey]}</span>
+                                        ${isChosen ? '<span class="badge bg-white text-primary ms-auto shadow-sm">Thí sinh chọn</span>' : ''}
+                                    </div>`;
+                            });
+                        }
+                        answerBlockHtml = `<div class="mt-2">${optionItemsHtml ? optionItemsHtml : `<i class="text-danger small">Không có danh sách đáp án mẫu.</i>`}</div>`;
+                        
+                        if(!sAns) {
+                            answerBlockHtml += `<div class="text-danger small mt-1 fw-bold"><i class="bi bi-x-circle"></i> Thí sinh không chọn đáp án nào.</div>`;
+                        }
                     }
+
+                    // Đóng gói khối hiển thị câu hỏi hoàn chỉnh kèm nhãn PHẦN
+                    questionsListHtml += `
+                        <div class="p-3 question-review-item bg-white shadow-sm">
+                            <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-2">
+                                <div>
+                                    <span class="badge bg-dark me-1">Câu ${displayNum}</span>
+                                    <span class="badge ${qType === 'tu_luan' ? 'bg-warning text-dark' : 'bg-info text-white'}">${qType === 'tu_luan' ? 'Tự luận' : 'Trắc nghiệm'}</span>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-secondary opacity-75 style="font-size: 0.75rem;"><i class="bi bi-folder"></i> Vị trí: ${currentSectionTitle}</span>
+                                </div>
+                            </div>
+                            <div class="fw-bold text-dark mb-1" style="font-size: 1rem;">Nội dung đề: ${qData.title || '---'}</div>
+                            ${answerBlockHtml}
+                        </div>`;
                 });
-                
+
                 questionsListHtml += '</div>';
                 answersContentHtml = questionsListHtml;
             } else {
-                answersContentHtml = `<div class="alert alert-warning text-center py-3 m-0 small"><i class="bi bi-exclamation-triangle me-1"></i>Thí sinh chưa chọn hoặc chưa lưu đáp án nào cho bài thi này.</div>`;
+                // Phương án dự phòng nếu cấu trúc đề bị xóa/lỗi
+                answersContentHtml = `<div class="alert alert-warning text-center py-2 small"><i class="bi bi-exclamation-triangle"></i> Không thể đối chiếu cấu trúc đề gốc ${examId.toUpperCase()}. Vui lòng kiểm tra lại sự tồn tại của đề.</div>`;
             }
 
             let violationBadge = `<span class="ms-3 badge bg-secondary">Chưa làm</span>`;
@@ -680,31 +748,30 @@ function openStatusModal(username) {
             }
 
             examsHtml += `
-                <div class="accordion-item mb-3 border rounded shadow-sm">
+                <div class="accordion-item mb-3 border rounded shadow-sm overflow-hidden">
                     <h2 class="accordion-header" id="heading_${examId}">
-                        <button class="accordion-button ${index === 1 ? '' : 'collapsed'} fw-bold text-dark bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_${examId}">
+                        <button class="accordion-button ${index === 1 ? '' : 'collapsed'} fw-bold text-dark bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapse_${examId}">
                             <i class="bi bi-journal-text me-2 text-primary"></i> ĐỀ THI: ${examId.toUpperCase()} 
                             ${violationBadge}
                         </button>
                     </h2>
                     <div id="collapse_${examId}" class="accordion-collapse collapse ${index === 1 ? 'show' : ''}" data-bs-parent="#examsAccordion">
-                        <div class="accordion-body bg-white">
+                        <div class="accordion-body bg-light">
                             <div class="row g-3">
-                                <div class="col-md-6 border-end">
-                                    <h6 class="fw-bold text-secondary mb-2"><i class="bi bi-square"></i> Tổng quan kết quả</h6>
-                                    <p class="mb-1"><strong>Trạng thái:</strong> <span class="badge ${isDone ? 'bg-success' : 'bg-secondary'}">${isDone ? 'Đã nộp bài' : 'Chưa thực hiện'}</span></p>
-                                    <p class="mb-1"><strong>Nộp bài lúc:</strong> <span class="text-muted">${exam.submitTime || '---'}</span></p>
-                                    <p class="mb-1"><strong>Điểm máy tự chấm:</strong> <span class="badge bg-dark fs-6">${exam.autoScore ?? 'Chưa có điểm'}</span></p>
-                                    <p class="mb-1"><strong>Điểm phê duyệt cuối:</strong> <span class="badge bg-success fs-6">${exam.finalScore ?? 'Chưa duyệt'}</span></p>
-                                    <p class="mb-1"><strong>Nhận xét:</strong> <span class="text-muted italic">${exam.adminComment || 'Chưa ghi nhận'}</span></p>
-                                    
-                                    <div class="mt-4">
-                                        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pencil-square"></i> Chi tiết bài làm thực tế của thí sinh</h6>
-                                        ${answersContentHtml}
-                                    </div>
+                                <div class="col-md-7 border-end">
+                                    <h5 class="fw-bold text-primary mb-3"><i class="bi bi-card-checklist"></i> Chi tiết các câu hỏi & Bài làm thí sinh</h5>
+                                    ${answersContentHtml}
                                 </div>
-                                <div class="col-md-6">
-                                    <h6 class="fw-bold text-danger mb-2"><i class="bi bi-shield-exclamation"></i> Chi tiết vi phạm từ AI & Hệ thống</h6>
+                                <div class="col-md-5">
+                                    <div class="card p-3 mb-3 border-0 shadow-sm rounded-3">
+                                        <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2"><i class="bi bi-info-circle-fill"></i> Tổng quan điểm số</h6>
+                                        <p class="mb-1"><strong>Trạng thái đề:</strong> <span class="badge ${isDone ? 'bg-success' : 'bg-secondary'}">${isDone ? 'Đã nộp bài' : 'Chưa thực hiện'}</span></p>
+                                        <p class="mb-1"><strong>Thời gian nộp:</strong> <span class="text-muted">${studentExamRecord.submitTime || '---'}</span></p>
+                                        <p class="mb-1"><strong>Điểm máy tự chấm:</strong> <span class="badge bg-dark fs-6">${studentExamRecord.autoScore ?? 'N/A'}</span></p>
+                                        <p class="mb-1"><strong>Điểm phê duyệt cuối:</strong> <span class="badge bg-success fs-6">${studentExamRecord.finalScore ?? 'Chưa duyệt'}</span></p>
+                                        <p class="mb-0"><strong>Nhận xét:</strong> <span class="text-muted italic">${studentExamRecord.adminComment || 'Chưa có ghi chú'}</span></p>
+                                    </div>
+                                    <h6 class="fw-bold text-danger mb-2"><i class="bi bi-shield-exclamation"></i> Log giám sát AI trực tuyến</h6>
                                     ${globalLogsHtml}
                                 </div>
                             </div>
@@ -715,17 +782,18 @@ function openStatusModal(username) {
         examsHtml += `</div>`;
     }
 
+    // Kết xuất giao diện chính ra modal bảng điều khiển
     container.innerHTML = `
-        <div class="row mb-3 bg-light p-3 rounded mx-1 border">
+        <div class="row mb-3 bg-white p-3 rounded mx-1 border shadow-sm">
             <div class="col-md-6 border-end">
                 <p class="mb-1"><strong>Họ và Tên:</strong> <span class="text-primary fw-bold">${user.name || '---'}</span></p>
-                <p class="mb-1"><strong>Số Báo Danh:</strong> <span class="badge bg-dark">${user.sbd || '---'}</span></p>
+                <p class="mb-1"><strong>Số Báo Danh:</strong> <span class="badge bg-dark px-2 py-1 fs-6">${user.sbd || '---'}</span></p>
                 <p class="mb-1"><strong>Lớp học:</strong> <span>${user.class || '---'}</span></p>
             </div>
             <div class="col-md-6 ps-md-4">
-                <p class="mb-1"><strong>Email:</strong> <span class="text-muted">${user.email || '---'}</span></p>
-                <p class="mb-1"><strong>Trạng thái thao tác:</strong> <span class="badge bg-info text-dark fw-bold">${user.examStatus || 'Chưa rõ'}</span></p>
-                <p class="mb-1"><strong>Tổng số vi phạm chung:</strong> <span class="badge bg-danger">${user.screenViolations || 0} lần</span></p>
+                <p class="mb-1"><strong>Email tài khoản:</strong> <span class="text-muted">${user.email || '---'}</span></p>
+                <p class="mb-1"><strong>Trạng thái kết nối:</strong> <span class="badge bg-info text-dark fw-bold">${user.examStatus || 'Chưa rõ'}</span></p>
+                <p class="mb-1"><strong>Tổng vi phạm màn hình:</strong> <span class="badge bg-danger">${user.screenViolations || 0} lần</span></p>
             </div>
         </div>
         <hr>
@@ -737,7 +805,6 @@ function openStatusModal(username) {
 
 function openPublishModal(username) {
     const user = localUsersCache[username];
-    
     if (!user.assignedExams || Object.keys(user.assignedExams).length === 0) {
         showToast("Thí sinh này chưa được phân phối đề thi nào!", "warning");
         return;
@@ -903,7 +970,7 @@ function showToast(message, type = 'success') {
             <div class="toast-body">
                 <i class="bi ${iconClass} fs-5"></i>
                 <div class="flex-grow-1"><span>${message}</span></div>
-                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-toast="toast" aria-label="Close"></button>
             </div>
             <div class="progress"><div class="progress-bar"></div></div>
         </div>
@@ -919,15 +986,6 @@ function showToast(message, type = 'success') {
     });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-        // Kiểm tra quyền ngay lập tức
-        if (checkAdminAccess()) {
-            // Nếu là admin thì mới chạy tiếp các hàm load dữ liệu khác
-            renderUserList(); 
-        }
-    });
-
-    // 1. Logic tự động hiển thị nút (Thêm/Đổi mật khẩu)
 firebase.auth().onAuthStateChanged(user => {
     if (user) {
         const btn = document.getElementById('btnManagePassword');
@@ -945,7 +1003,6 @@ firebase.auth().onAuthStateChanged(user => {
     }
 });
 
-// 2. Logic xử lý mật khẩu
 function processPasswordLogic() {
     const user = firebase.auth().currentUser;
     const newPass = document.getElementById('adminNewPassword').value;
@@ -965,20 +1022,6 @@ function processPasswordLogic() {
             return user.updatePassword(newPass);
         }).then(() => showToast("Đổi mật khẩu thành công!","success")).catch(e => showToast("Lỗi: " + e.message,"danger"));
     }
-}
-
-// 3. Logic hiển thị danh sách vi phạm chi tiết
-// Thay thế hàm hiển thị cũ bằng hàm này
-function showStatusDetails(userEmail) {
-    const username = userEmail.replace(/[.@]/g, '_');
-    firebase.database().ref(`users/${username}/violationLogs`).once('value').then(snap => {
-        const list = snap.val() || [];
-        // Giả sử modal cũ của bạn có id="statusDetailsContent"
-        document.getElementById('statusDetailsContent').innerHTML = list.length > 0 ? 
-            list.map((v, i) => `<li>Lần ${i+1}: ${v.reason} lúc ${v.time}</li>`).join('') : 
-            "Không có vi phạm nào.";
-        new bootstrap.Modal(document.getElementById('statusModal')).show();
-    });
 }
 </script>
 </body>
