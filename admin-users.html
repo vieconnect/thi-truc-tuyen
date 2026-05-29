@@ -362,12 +362,12 @@ async function openGiaoDeModal(username) {
     
     const examsSnap = await database.ref('exams').once('value');
     const select = document.getElementById('selectExam');
-    select.innerHTML = '<option value="">-- Chọn bài thi --</option>';
+    select.innerHTML = '<option value="">-- Vui lòng chọn bài thi mà bạn muốn giao--</option>';
     
     examsSnap.forEach(snap => {
         const examId = snap.key;
         const examData = snap.val();
-        select.innerHTML += `<option value="${examId}">${examId} - ${examData.subject || 'Không tên'}</option>`;
+        select.innerHTML += `<option value="${examId}">${examData.subject || 'Không tên'}</option>`;
     });
 
     renderAssignedList();
@@ -393,7 +393,7 @@ async function renderAssignedList() {
 
 async function assignExamToStudent() {
     const examId = document.getElementById('selectExam').value;
-    if (!examId) return alert("Vui lòng chọn đề thi!");
+    if (!examId) return showToast("Vui lòng chọn đề thi!","warning");
     
     await database.ref(`users/${currentStudentUsername}/assignedExams/${examId}`).set({
         status: "Chưa làm",
@@ -481,7 +481,7 @@ function loadRealtimeUsers() {
                             <i class="bi bi-eye"></i> Kiểm tra
                         </button>
                         <button class="btn btn-outline-success" onclick="openPublishModal('${username}')">
-                            <i class="bi bi-check-circle"></i> Công báo
+                            <i class="bi bi-check-circle"></i> Công bố
                         </button>
                         <button class="btn btn-sm btn-info" onclick="openGiaoDeModal('${user.username}')">
                             Giao đề
@@ -505,7 +505,7 @@ function openLockModal(username, name, sbd) {
     document.getElementById('lockTargetName').value = name;
     document.getElementById('lockTargetSBD').value = sbd;
     document.getElementById('lockStartTime').value = new Date().toLocaleString('vi-VN');
-    document.getElementById('lockDuration').value = "Cho đến khi có phê duyệt mới từ Admin";
+    document.getElementById('lockDuration').value = "Cho đến khi có phê duyệt mới từ BTC";
     document.getElementById('lockReason').value = "";
     new bootstrap.Modal(document.getElementById('lockModal')).show();
 }
