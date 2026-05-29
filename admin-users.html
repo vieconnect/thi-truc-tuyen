@@ -68,7 +68,7 @@
             to { width: 0%; }
         }
 
-        /* Giao diện bổ sung cho khối bài làm chi tiết */
+        /* Giao diện khối bài làm chi tiết */
         .admin-section-banner {
             background: linear-gradient(135deg, #2c3e50, #34495e);
             color: #fff;
@@ -89,6 +89,7 @@
 <body class="bg-light">
 <div id="toastContainer"></div>
 
+<!-- THANH ĐIỀU HƯỚNG CHÍNH -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
   <div class="container-fluid">
     <a class="navbar-brand fw-bold text-danger" href="#">🛡️ VIEEDU – Trang Quản Trị</a>
@@ -101,6 +102,7 @@
   </div>
 </nav>
 
+<!-- BẢNG ĐIỀU KHIỂN CHÍNH -->
 <div class="container-fluid mt-4 px-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -108,7 +110,7 @@
             <p class="text-muted mb-0">Dữ liệu đồng bộ Realtime trạng thái làm bài và chấm điểm</p>
         </div>
         <div class="bg-white px-4 py-2 rounded shadow-sm border text-center">
-            <span class="text-muted small d-block font-weight-bold">Tổng số thí sinh</span>
+            <span class="text-muted small d-block fw-bold">Tổng số thí sinh</span>
             <strong id="totalUsersCount" class="fs-3 text-danger">0</strong>
         </div>
     </div>
@@ -120,6 +122,7 @@
         <a href="quan-ly-de-thi.html" class="btn btn-info text-white"><i class="bi bi-collection-play-fill"></i> Quản lý đề thi</a>
     </div>
 
+    <!-- THANH BỘ LỌC TÌM KIẾM -->
     <div class="card p-3 mb-4 shadow-sm border-0">
         <div class="row g-3">
             <div class="col-md-6">
@@ -130,7 +133,7 @@
             </div>
             <div class="col-md-3">
                 <select id="statusFilter" class="form-select" onchange="filterUserTable()">
-                    <option value="all">-- Tất cả trạng thái --</option>
+                    <option value="all">-- Tất cả trạng thái TK --</option>
                     <option value="active">Đang hoạt động</option>
                     <option value="locked">🔒 Đã bị khóa</option>
                 </select>
@@ -146,6 +149,7 @@
         </div>
     </div>
 
+    <!-- DANH SÁCH THÍ SINH -->
     <div class="card shadow-sm border-0">
         <div class="table-responsive">
             <table class="table table-bordered table-striped align-middle m-0" id="userTable">
@@ -174,7 +178,11 @@
     </div>
 </div>
 
-<!-- CÁC MODAL HỆ THỐNG -->
+<!-- ========================================== -->
+<!--             CÁC MODAL HỆ THỐNG              -->
+<!-- ========================================== -->
+
+<!-- MODAL KHÓA TÀI KHOẢN -->
 <div class="modal fade" id="lockModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -217,6 +225,7 @@
     </div>
 </div>
 
+<!-- MODAL XÁC NHẬN MỞ KHÓA -->
 <div class="modal fade" id="confirmUnlockModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -235,6 +244,7 @@
     </div>
 </div>
 
+<!-- MODAL CẢNH BÁO THU HỒI ĐIỂM -->
 <div class="modal fade" id="confirmResetModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -253,7 +263,7 @@
     </div>
 </div>
 
-<!-- MODAL XEM CHI TIẾT TIẾN TRÌNH & ĐÁP ÁN BÀI LÀM -->
+<!-- MODAL XEM CHI TIẾT TIẾN TRÌNH & ĐỐI CHIẾU ĐÁP ÁN BÀI LÀM -->
 <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
@@ -268,6 +278,7 @@
     </div>
 </div>
 
+<!-- MODAL THẨM ĐỊNH & CÔNG BỐ KẾT QUẢ -->
 <div class="modal fade" id="publishModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -316,7 +327,7 @@
                     <i class="bi bi-arrow-counterclockwise"></i> Xóa tiến trình (Thu hồi điểm)
                 </button>
                 <div>
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Don't Save</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
                     <button type="button" class="btn btn-sm btn-success px-4 fw-bold" onclick="executePublishResult()">Phê duyệt & Công bố</button>
                 </div>
             </div>
@@ -324,6 +335,7 @@
     </div>
 </div>
 
+<!-- MODAL GIAO ĐỀ THI -->
 <div class="modal fade" id="giaoDeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -345,6 +357,7 @@
     </div>
 </div>
 
+<!-- MODAL ĐỔI/CÀI ĐẶT MẬT KHẨU ADMIN -->
 <div class="modal fade" id="adminPasswordModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -359,7 +372,7 @@
     </div>
 </div>
 
-<!-- THƯ VIỆN LIÊN KẾT -->
+<!-- THƯ VIỆN KHỞI TẠO LIÊN KẾT FIREBASE & SCRIPTS -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -371,6 +384,11 @@
 let localUsersCache = {};
 let isModelsLoaded = false;
 let currentStudentUsername = '';
+
+// Khởi chạy đồng bộ dữ liệu người dùng khi tải trang xong
+document.addEventListener('DOMContentLoaded', () => {
+    loadRealtimeUsers();
+});
 
 async function openGiaoDeModal(username) {
     currentStudentUsername = username;
@@ -401,7 +419,7 @@ async function renderAssignedList() {
     Object.keys(assigned).forEach(examId => {
         list.innerHTML += `
             <li class="list-group-item d-flex justify-content-between align-items-center">
-                ${examId}
+                ${examId.toUpperCase()}
                 <button class="btn btn-danger btn-sm" onclick="removeAssignedExam('${examId}')">Xóa</button>
             </li>`;
     });
@@ -424,10 +442,6 @@ async function removeAssignedExam(examId) {
         renderAssignedList();
     }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadRealtimeUsers();
-});
 
 function loadRealtimeUsers() {
     database.ref('users').on('value', (snapshot) => {
@@ -574,7 +588,7 @@ function askConfirmUnlock(username, fullName) {
 }
 
 // =========================================================================
-// SỬA ĐỔI TOÀN DIỆN: ĐỐI CHIẾU ĐỀ GỐC ĐỂ BIẾT CÂU NÀO THUỘC PHẦN NÀO, ĐÁP ÁN GÌ
+// LOGIC CHÍNH: XEM CHI TIẾT VÀ ĐỐI CHIẾU ĐÁP ÁN HỆ THỐNG CHO TẤT CẢ CÁC LOẠI CÂU
 // =========================================================================
 async function openStatusModal(username) {
     const user = localUsersCache[username];
@@ -585,7 +599,7 @@ async function openStatusModal(username) {
         return;
     }
 
-    // 1. Thu thập nhật ký vi phạm tổng quan
+    // 1. Lấy lịch sử vi phạm quy chế
     let globalLogsHtml = '<p class="text-success small mb-0"><i class="bi bi-check-circle-fill"></i> Không ghi nhận vi phạm chống gian lận nào từ hệ thống.</p>';
     let totalViolationsCount = 0;
     
@@ -614,7 +628,7 @@ async function openStatusModal(username) {
 
     let examsHtml = `<p class="text-muted p-3 text-center">Chưa phân phối hoặc chưa có tiến trình làm bài thi nào.</p>`;
 
-    // 2. Nếu học sinh có danh sách đề thi, tiến hành bóc tách nâng cao
+    // 2. Phân tích chi tiết từng bài thi được giao cho học sinh
     if (user.assignedExams && Object.keys(user.assignedExams).length > 0) {
         examsHtml = `<div class="accordion" id="examsAccordion">`;
         let index = 0;
@@ -624,7 +638,7 @@ async function openStatusModal(username) {
             const studentExamRecord = user.assignedExams[examId];
             const isDone = studentExamRecord && (studentExamRecord.submitTime !== undefined || studentExamRecord.status === "Đã hoàn thành");
 
-            // Gom đáp án thực tế của thí sinh
+            // Tập hợp dữ liệu bài làm của học sinh gửi lên
             let studentAnswers = {};
             if (studentExamRecord) {
                 if (studentExamRecord.selectedAnswers && typeof studentExamRecord.selectedAnswers === 'object') {
@@ -637,7 +651,7 @@ async function openStatusModal(username) {
                 });
             }
 
-            // ĐỌC THÊM CẤU TRÚC ĐỀ GỐC TỪ FIREBASE ĐỂ LẤY PHẦN (SECTION) VÀ TIÊU ĐỀ
+            // Đọc cấu trúc đề thi gốc từ Firebase đề thi phục vụ đối chiếu
             let examStructureQuestions = null;
             try {
                 const examSnap = await database.ref(`exams/${examId}/questions`).once('value');
@@ -649,33 +663,32 @@ async function openStatusModal(username) {
             let answersContentHtml = '';
 
             if (examStructureQuestions && typeof examStructureQuestions === 'object') {
-                // Sắp xếp các câu hỏi của đề gốc theo thứ tự tăng dần số (q_1, q_2, ...)
                 const sortedQKeys = Object.keys(examStructureQuestions).sort((a, b) => {
                     return (parseInt(a.replace(/[^0-9]/g, '')) || 0) - (parseInt(b.replace(/[^0-9]/g, '')) || 0);
                 });
 
                 let questionsListHtml = '<div class="d-flex flex-column gap-3">';
                 let visibleQuestionIndex = 1;
-                let currentSectionTitle = "Phần chung / Mở đầu"; // Khởi tạo nếu đề không chia phần từ đầu
+                let currentSectionTitle = "Phần chung / Mở đầu"; 
 
                 sortedQKeys.forEach((qKey) => {
                     const qData = examStructureQuestions[qKey];
                     const qType = qData.type || 'trac_nghiem';
                     const sAns = String(studentAnswers[qKey] || '').trim();
 
-                    // Nếu gặp khối PHẦN MỤC -> Cập nhật tiêu đề Phần hiện tại để dán nhãn cho các câu bên dưới
+                    // Nếu là dán nhãn phân mục Section đề thi
                     if (qType === 'phan_muc') {
                         currentSectionTitle = qData.title && qData.title.trim() !== '' ? qData.title : "Phần mục ẩn / Không tên";
                         questionsListHtml += `
-                            <div class="admin-section-banner p-2 px-3 rounded shadow-sm mt-2">
+                            <div class="admin-section-banner p-2 px-3 rounded shadow-sm mt-2" style="background: linear-gradient(135deg, #2c3e50, #34495e); color: #fff; border-left: 5px solid #ffc107;">
                                 <span class="fw-bold small text-warning text-uppercase"><i class="bi bi-segmented-nav me-1"></i> Cấu trúc thuộc:</span>
                                 <h6 class="m-0 fw-bold">${currentSectionTitle}</h6>
                                 ${qData.description ? `<small class="opacity-75 d-block text-light">${qData.description}</small>` : ''}
                             </div>`;
-                        return; // Ngắt để không render thành khối câu hỏi
+                        return; 
                     }
 
-                    // Nếu là đoạn văn hỗ trợ ngữ liệu đề bài
+                    // Nếu là ngữ liệu đoạn văn
                     if (qType === 'doan_van') {
                         questionsListHtml += `
                             <div class="p-3 border rounded shadow-sm bg-light text-dark question-review-item">
@@ -685,47 +698,93 @@ async function openStatusModal(username) {
                         return;
                     }
 
-                    // Xử lý hiển thị nội dung câu hỏi Trắc nghiệm hoặc Tự luận
                     let displayNum = visibleQuestionIndex;
                     visibleQuestionIndex++;
 
                     let answerBlockHtml = '';
+                    
+                    // ==========================================
+                    // THỂ LOẠI 1: XỬ LÝ CÂU HỎI TỰ LUẬN
+                    // ==========================================
                     if (qType === 'tu_luan') {
+                        const systemSampleAnswer = qData.correctAnswer || qData.correct || qData.sampleAnswer || '';
+                        
                         answerBlockHtml = `
-                            <div class="mt-2 p-3 bg-white border rounded shadow-sm" style="white-space: pre-wrap; word-break: break-word; min-height: 50px; font-size: 0.95rem; line-height: 1.5; border-left: 4px solid #ffc107 !important;">
-                                ${sAns ? `<strong class="text-dark">${sAns}</strong>` : `<i class="text-muted">Thí sinh bỏ trống, không nộp bài làm tự luận.</i>`}
+                            <div class="mt-2 row g-2">
+                                <div class="col-md-6">
+                                    <span class="small fw-bold text-primary d-block mb-1"><i class="bi bi-person-workspace"></i> Bài làm của thí sinh:</span>
+                                    <div class="p-2 bg-white border rounded shadow-sm text-dark fw-medium" style="white-space: pre-wrap; word-break: break-word; min-height: 80px; font-size: 0.9rem; line-height: 1.4; border-left: 4px solid #ffc107 !important;">
+                                        ${sAns ? sAns : `<i class="text-muted small">Thí sinh để trống, không nhập nội dung tự luận.</i>`}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <span class="small fw-bold text-success d-block mb-1"><i class="bi bi-patch-check-fill"></i> Đáp án mẫu / Hướng dẫn chấm hệ thống:</span>
+                                    <div class="p-2 bg-light border rounded text-success" style="white-space: pre-wrap; word-break: break-word; min-height: 80px; font-size: 0.9rem; line-height: 1.4; border-left: 4px solid #198754 !important;">
+                                        ${systemSampleAnswer ? `<strong>${systemSampleAnswer}</strong>` : `<i class="text-muted small">Hệ thống không cài đặt trước đáp án mẫu / hướng dẫn chấm cho câu tự luận này.</i>`}
+                                    </div>
+                                </div>
                             </div>`;
-                    } else {
-                        // Trắc nghiệm
+                    } 
+                    // ==========================================
+                    // THỂ LOẠI 2: XỬ LÝ CÂU HỎI TRẮC NGHIỆM
+                    // ==========================================
+                    else {
                         let optionItemsHtml = '';
                         if (qData.options) {
+                            // Chuẩn hóa đáp án đúng lưu trên hệ thống
+                            const systemCorrectAns = String(qData.correctAnswer || qData.correct || '').trim().toUpperCase();
+
                             Object.keys(qData.options).forEach(optKey => {
-                                const isChosen = (sAns.toUpperCase() === optKey.toUpperCase());
+                                const currentKeyUpper = optKey.toUpperCase();
+                                const isStudentChosen = (sAns.toUpperCase() === currentKeyUpper);
+                                const isSystemCorrect = (systemCorrectAns === currentKeyUpper);
+
+                                let itemClass = 'bg-light text-muted';
+                                let badgeHtml = '';
+                                let iconClass = 'bi-circle';
+
+                                if (isSystemCorrect && isStudentChosen) {
+                                    // Đúng hoàn toàn
+                                    itemClass = 'bg-success text-white border-success fw-bold';
+                                    iconClass = 'bi-check-circle-fill';
+                                    badgeHtml = '<span class="badge bg-white text-success ms-auto shadow-sm"><i class="bi bi-check-lg"></i> Chính xác (Thí sinh chọn)</span>';
+                                } else if (isSystemCorrect) {
+                                    // Vị trí đáp án đúng của hệ thống nhưng học sinh chọn sai/không chọn
+                                    itemClass = 'bg-warning text-dark border-warning fw-bold';
+                                    iconClass = 'bi-arrow-right-circle-fill';
+                                    badgeHtml = '<span class="badge bg-dark text-warning ms-auto shadow-sm"><i class="bi bi-key-fill"></i> Đáp án đúng hệ thống</span>';
+                                } else if (isStudentChosen) {
+                                    // Vị trí học sinh chọn bị sai
+                                    itemClass = 'bg-danger text-white border-danger fw-bold';
+                                    iconClass = 'bi-x-circle-fill';
+                                    badgeHtml = '<span class="badge bg-white text-danger ms-auto shadow-sm"><i class="bi bi-x-lg"></i> Thí sinh chọn sai</span>';
+                                }
+
                                 optionItemsHtml += `
-                                    <div class="p-2 border rounded my-1 d-flex align-items-center ${isChosen ? 'bg-primary text-white border-primary fw-bold' : 'bg-light text-muted'}" style="font-size: 0.9rem;">
-                                        <i class="bi ${isChosen ? 'bi-check-circle-fill me-2' : 'bi-circle me-2'}"></i>
+                                    <div class="p-2 border rounded my-1 d-flex align-items-center ${itemClass}" style="font-size: 0.9rem;">
+                                        <i class="bi ${iconClass} me-2"></i>
                                         <span>${optKey}. ${qData.options[optKey]}</span>
-                                        ${isChosen ? '<span class="badge bg-white text-primary ms-auto shadow-sm">Thí sinh chọn</span>' : ''}
+                                        ${badgeHtml}
                                     </div>`;
                             });
                         }
-                        answerBlockHtml = `<div class="mt-2">${optionItemsHtml ? optionItemsHtml : `<i class="text-danger small">Không có danh sách đáp án mẫu.</i>`}</div>`;
+                        answerBlockHtml = `<div class="mt-2">${optionItemsHtml ? optionItemsHtml : `<i class="text-danger small">Không có danh sách đáp án trắc nghiệm mẫu.</i>`}</div>`;
                         
-                        if(!sAns) {
-                            answerBlockHtml += `<div class="text-danger small mt-1 fw-bold"><i class="bi bi-x-circle"></i> Thí sinh không chọn đáp án nào.</div>`;
+                        if (!sAns) {
+                            answerBlockHtml += `<div class="text-danger small mt-1 fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Thí sinh bỏ trống, không chọn đáp án trắc nghiệm nào.</div>`;
                         }
                     }
 
-                    // Đóng gói khối hiển thị câu hỏi hoàn chỉnh kèm nhãn PHẦN
+                    // Đóng gói giao diện câu hỏi hoàn chỉnh
                     questionsListHtml += `
-                        <div class="p-3 question-review-item bg-white shadow-sm">
+                        <div class="p-3 question-review-item bg-white shadow-sm mb-2" style="border: 1px solid #e3e6f0; border-radius: 6px;">
                             <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-2">
                                 <div>
                                     <span class="badge bg-dark me-1">Câu ${displayNum}</span>
                                     <span class="badge ${qType === 'tu_luan' ? 'bg-warning text-dark' : 'bg-info text-white'}">${qType === 'tu_luan' ? 'Tự luận' : 'Trắc nghiệm'}</span>
                                 </div>
                                 <div class="text-end">
-                                    <span class="badge bg-secondary opacity-75 style="font-size: 0.75rem;"><i class="bi bi-folder"></i> Vị trí: ${currentSectionTitle}</span>
+                                    <span class="badge bg-secondary opacity-75" style="font-size: 0.75rem;"><i class="bi bi-folder"></i> Vị trí: ${currentSectionTitle}</span>
                                 </div>
                             </div>
                             <div class="fw-bold text-dark mb-1" style="font-size: 1rem;">Nội dung đề: ${qData.title || '---'}</div>
@@ -736,7 +795,6 @@ async function openStatusModal(username) {
                 questionsListHtml += '</div>';
                 answersContentHtml = questionsListHtml;
             } else {
-                // Phương án dự phòng nếu cấu trúc đề bị xóa/lỗi
                 answersContentHtml = `<div class="alert alert-warning text-center py-2 small"><i class="bi bi-exclamation-triangle"></i> Không thể đối chiếu cấu trúc đề gốc ${examId.toUpperCase()}. Vui lòng kiểm tra lại sự tồn tại của đề.</div>`;
             }
 
@@ -782,7 +840,7 @@ async function openStatusModal(username) {
         examsHtml += `</div>`;
     }
 
-    // Kết xuất giao diện chính ra modal bảng điều khiển
+    // Kết xuất giao diện ra modal
     container.innerHTML = `
         <div class="row mb-3 bg-white p-3 rounded mx-1 border shadow-sm">
             <div class="col-md-6 border-end">
@@ -805,7 +863,7 @@ async function openStatusModal(username) {
 
 function openPublishModal(username) {
     const user = localUsersCache[username];
-    if (!user.assignedExams || Object.keys(user.assignedExams).length === 0) {
+    if (!user || !user.assignedExams || Object.keys(user.assignedExams).length === 0) {
         showToast("Thí sinh này chưa được phân phối đề thi nào!", "warning");
         return;
     }
