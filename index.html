@@ -8,156 +8,370 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
-        body { background: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .auth-card { border: none; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        #toastContainer { position: fixed; top: 20px; right: 20px; z-index: 99999; width: 350px; }
+        body { 
+            background: #ffffff; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0;
+            padding: 0;
+        }
+        .auth-card { 
+            border: none; 
+            border-radius: 0px; 
+            width: 100%;
+        }
+        #toastContainer { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            z-index: 99999; 
+            width: 350px; 
+        }
+
+        /* Nav Tabs nguyên bản của bạn */
+        .nav-tabs .nav-link {
+            border: none;
+            color: #6c757d;
+            font-weight: bold;
+            font-size: 0.95rem;
+            padding: 10px 15px;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            border-bottom: 3px solid #0d6efd;
+            background: transparent;
+        }
+
+        /* Card kỳ thi nguyên bản */
+        .exam-outer-card {
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            padding: 25px;
+            max-width: 400px;
+            background: #ffffff;
+        }
+        .exam-inner-blue {
+            background-color: #0a3d62;
+            color: #ffffff;
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        /* TỶ LỆ CHIA ĐÔI MÀN HÌNH CHUẨN FORM */
+        .split-main-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        /* Cột bên trái: Rộng rãi */
+        .split-left-pane {
+            flex: 1; 
+            padding: 4rem 3.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            border-right: 1px solid #e9ecef;
+        }
+
+        /* Cột bên phải: Thu gọn ôm sát form đăng nhập */
+        .split-right-pane {
+            flex: 0 0 430px; 
+            padding: 4rem 2.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffff;
+        }
+
+        /* Nút quay lại danh sách kỳ thi */
+        .btn-back {
+            background: none;
+            border: none;
+            color: #0d6efd;
+            padding: 0;
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+        }
+        .btn-back:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive trên Tablet/Mobile */
+        @media (max-width: 991px) {
+            .split-main-container {
+                flex-direction: column;
+            }
+            .split-left-pane {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+                padding: 2.5rem 1.5rem;
+            }
+            .split-right-pane {
+                flex: none;
+                width: 100%;
+                padding: 3rem 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
 
 <div id="toastContainer"></div>
 
-<div class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
-    <div class="card auth-card p-4 p-md-5 bg-white" style="max-width: 480px; width: 100%;">
+<div class="split-main-container">
+    
+    <div class="split-left-pane">
         
-        <div id="loginSection">
-            <h3 class="text-center fw-bold text-dark mb-4">ĐĂNG NHẬP</h3>
-            <div class="mb-3">
-                <label class="form-label fw-bold">Địa chỉ Email</label>
-                <input type="email" id="loginEmail" class="form-control" placeholder="name@company.com">
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-bold">Mật khẩu</label>
-                <div class="input-group">
-                    <input type="password" id="loginPassword" class="form-control" placeholder="••••••••">
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('loginPassword', this)">
-                        <i class="bi bi-eye"></i>
+<ul class="nav nav-tabs border-bottom mb-4" role="tablist" id="mainNavTabs">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="link-kithi" data-bs-toggle="tab" data-bs-target="#tab-kithi" type="button" role="tab">
+            <i class="bi bi-megaphone-fill me-2"></i>CÁC KÌ THI SẮP TỚI
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="link-thongbao" data-bs-toggle="tab" data-bs-target="#tab-thongbao" type="button" role="tab">
+            <i class="bi bi-chat-left-text-fill me-2"></i>THÔNG BÁO HỆ THỐNG
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="link-phanhoi" data-bs-toggle="tab" data-bs-target="#tab-phanhoi-content" type="button" role="tab">
+            <i class="bi bi-envelope-paper-fill me-2"></i>PHẢN HỒI - HỖ TRỢ
+        </button>
+    </li>
+</ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-kithi">
+                <h2 class="fw-bold text-dark mb-1" style="letter-spacing: -0.5px;">CỔNG KHẢO THÍ SỐ VIEEDU</h2>
+                <p class="text-muted small text-uppercase fw-semibold mb-4" style="letter-spacing: 0.5px;">Hệ thống tổ chức thi trực tuyến chuyên sâu</p>
+                
+                <div class="exam-outer-card">
+                    <div class="exam-inner-blue mb-3">
+                        <h5 class="fw-bold mb-2" style="font-size: 1.2rem; letter-spacing: 0.5px;">KÝ THI ĐÁNH GIÁ NĂNG LỰC TIẾNG ANH - KHỐI 5</h5>
+                        <div class="small opacity-75">31/5/2026 - 1/6/2026</div>
+                        <div class="small opacity-75">Hội đồng thi trực tuyến nội bộ VieEdu</div>
+                    </div>
+                    <button class="btn btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2 py-2 fw-semibold" style="border-radius: 6px; font-size: 0.9rem;" onclick="switchToHiddenTab('tab-quyche')">
+                        <i class="bi bi-shield-check"></i> HƯỚNG DẪN THI
                     </button>
                 </div>
             </div>
-            <div class="text-end mb-3">
-                <a href="#" class="text-decoration-none small" onclick="switchForm('forgotSection')">Quên mật khẩu?</a>
+
+            <!--TAB THÔNG BÁO-->
+            <div class="tab-pane fade" id="tab-thongbao">
+                <center>
+                    <h5>TRUNG TÂM KHẢO THÍ SỐ VIEEDU</h5>
+                    <div>CHÀO MỪNG CÁC THÍ SINH ĐÃ ĐẾN VỚI CỔNG ĐĂNG KÝ VÀ KHẢO THÍ SỐ VIEEDU</div>
+                    <strong>Đính chính thông tin</strong>
+                </center>
+                <div>Vào rạng sáng ngày 25/5/2026, hệ thống tài khoản của VieEdu đã gặp một số trục trặc khiến thí sinh không thể đăng ký tài khoản hoặc đăng nhập vào hệ thống thi.</div>
+                <div>Hiện lỗi đã được khắc phục và các thí sinh đã có thể đăng ký và đăng nhập vào hệ thống như bình thường.</div>
+                <div>BTC gửi lời xin lỗi chân thành đến các thí sinh vì điều này có thể gây phiền phức cho các em</div>
             </div>
-            <button type="button" class="btn btn-primary w-100 fw-bold py-2 shadow-sm mb-3" onclick="handleLogin()">ĐĂNG NHẬP</button>
-            
-            <div class="d-flex align-items-center my-3">
-                <hr class="flex-grow-1">
-                <span class="mx-2 text-muted small">HOẶC</span>
-                <hr class="flex-grow-1">
+
+            <!--TAB QUY CHẾ THI TIẾNG ANH KHẢO SÁT KHỐI 5-->
+            <div class="tab-pane fade" id="tab-quyche">
+                <button class="btn-back" onclick="returnToNormalTab('tab-kithi', 0)">
+                    <i class="bi bi-arrow-left"></i> Quay lại danh sách kỳ thi
+                </button>
+
+                <h4 class="fw-bold text-dark mb-3">Quy chế & Điều khoản phòng thi</h4>
+                <div>
+                    <h5>Các bước làm bài thi:</h5>
+                    <ol class="mb-0">
+                        Bước 1: Thí sinh đăng ký tài khoản bằng Email/Google <span style="color: red;">(Thí sinh phải khai báo đúng thông tin. Nếu sai, BTC sẽ không chịu trách nhiệm)</span> <br>
+                        Bước 2: Sau khi đăng ký tài khoản thành công, thí sinh bấm <b>Vào thi trực tuyến</b>. Nếu thí sinh thấy thông báo chưa được phân bài thi nào, vui lòng kiểm tra ngày bắt đầu thi<br>
+                        <i style="color: red;">
+                            Lưu ý: Thí sinh tuyệt đối không sử dụng tài liệu bên ngoài trong suốt quá trình làm bài. <br>
+                            Nếu đến ngày thi mà thí sinh phát hiện lỗi, vui lòng phản hồi lại ngay với BTC
+                        </i>
+                    </ol>
+                </div>
+                <br>
+                <div class="alert alert-warning border-0 shadow-sm mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Lưu ý thí sinh:</strong> 
+                    <br> 1. Vui lòng không thực hiện thao tác chuyển tab hoặc thoát toàn màn hình để tránh bị hệ thống giám sát ghi nhận vi phạm quy chế thi. <br>
+                    2. Thí sinh tuyệt đối không sử dụng tài liệu bên ngoài trong suốt quá trình làm bài. <br>
+                    Nếu đến ngày thi mà thí sinh phát hiện lỗi, vui lòng phản hồi lại ngay với BTC
+                </div>
             </div>
-            
-            <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2 mb-2 d-flex align-items-center justify-content-center gap-2" onclick="loginWithProvider('google')">
-                <i class="bi bi-google"></i> Đăng nhập bằng Google
+
+            <div class="tab-pane fade" id="tab-phanhoi-content" role="tabpanel">
+        <h4 class="fw-bold text-dark mb-1">Gửi Phản Hồi / Báo Lỗi</h4>
+        <p class="text-muted small mb-4">Ý kiến của bạn sẽ giúp hệ thống khảo thí hoạt động ổn định và minh bạch hơn.</p>
+        
+        <form id="feedbackForm" onsubmit="submitFeedback(event)">
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Họ và tên</label>
+                <input type="text" id="fbName" class="form-control" placeholder="Nhập họ tên của bạn" required style="border-radius: 6px;">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Địa chỉ Email / Số điện thoại</label>
+                <input type="text" id="fbContact" class="form-control" placeholder="Để hội đồng liên hệ lại khi cần" required style="border-radius: 6px;">
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Nội dung phản hồi</label>
+                <textarea id="fbContent" class="form-control" rows="4" placeholder="Mô tả chi tiết vấn đề hoặc lỗi bạn gặp phải..." required style="border-radius: 6px;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary fw-semibold px-4 py-2" style="border-radius: 6px;">
+                <i class="bi bi-send-fill me-2"></i>Gửi phản hồi
             </button>
-            
-            <div class="text-center mt-4">
-                <span class="text-muted small">Chưa có tài khoản? </span>
-                <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('registerSection')">Đăng ký ngay</a>
-            </div>
+        </form>
+    </div>
         </div>
+    </div>
 
-        <div id="registerSection" style="display: none;">
-            <h3 class="text-center fw-bold text-dark mb-4">ĐĂNG KÝ HỆ THỐNG</h3>
-            <div class="mb-3">
-                <label class="form-label fw-bold">Họ và tên</label>
-                <input type="text" id="regName" class="form-control" placeholder="Nguyễn Văn A">
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-bold">Địa chỉ Email</label>
-                <input type="email" id="regEmail" class="form-control" placeholder="name@company.com">
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Lớp học / Đơn vị</label>
-                    <input type="text" id="regClass" class="form-control" placeholder="Ví dụ: Lớp 7A">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Chức vụ</label>
-                    <select id="regPosition" class="form-select">
-                        <option value="Thí sinh">Thí sinh</option>
-                        <option value="Giám thị">Giám thị</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-7">
-                    <label class="form-label fw-bold">Ngày sinh</label>
-                    <input type="date" id="regBirthday" class="form-control">
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label fw-bold">Tuổi</label>
-                    <input type="number" id="regAge" class="form-control" placeholder="13">
-                </div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label fw-bold">Mật khẩu bảo mật</label>
-                <div class="input-group">
-                    <input type="password" id="regPassword" class="form-control" placeholder="••••••••">
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('regPassword', this)">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="mb-4">
-                <label class="form-label fw-bold">Xác nhận mật khẩu</label>
-                <div class="input-group">
-                    <input type="password" id="regConfirmPassword" class="form-control" placeholder="••••••••">
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('regConfirmPassword', this)">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-            <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm mb-3" onclick="handleRegisterSubmit()">XÁC NHẬN ĐĂNG KÝ</button>
+    <div class="split-right-pane">
+        <div class="card auth-card bg-white">
             
-            <div class="text-center mt-2">
-                <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('loginSection')">Quay lại Đăng nhập</a>
+            <div id="loginSection">
+                <h2 class="text-center fw-bold text-dark mb-4" style="letter-spacing: -0.5px;">ĐĂNG NHẬP</h2>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-dark mb-2">Địa chỉ Email</label>
+                    <input type="email" id="loginEmail" class="form-control py-2" placeholder="name@company.com" style="border-radius: 6px;">
+                </div>
+                
+                <div class="mb-2">
+                    <label class="form-label fw-semibold text-dark mb-2">Mật khẩu</label>
+                    <div class="input-group">
+                        <input type="password" id="loginPassword" class="form-control py-2" placeholder="••••••••" style="border-radius: 6px 0 0 6px;">
+                        <button class="btn btn-outline-secondary" style="border-radius: 0 6px 6px 0; border-color: #ced4da; color: #6c757d;" type="button" onclick="togglePasswordVisibility('loginPassword', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="text-end mb-4">
+                    <a href="#" class="text-decoration-none small fw-semibold" onclick="switchForm('forgotSection')">Quên mật khẩu?</a>
+                </div>
+                
+                <button type="button" class="btn btn-primary w-100 fw-bold py-2.5 mb-3" style="border-radius: 6px; background-color: #0d6efd;" onclick="handleLogin()">ĐĂNG NHẬP</button>
+                
+                <div class="d-flex align-items-center my-4">
+                    <hr class="flex-grow-1 text-muted opacity-25 m-0">
+                    <span class="mx-3 text-muted small fw-semibold">HOẶC</span>
+                    <hr class="flex-grow-1 text-muted opacity-25 m-0">
+                </div>
+                
+                <button type="button" class="btn btn-outline-danger w-100 fw-semibold py-2 mb-4 d-flex align-items-center justify-content-center gap-2" style="border-radius: 6px;" onclick="loginWithProvider('google')">
+                    <i class="bi bi-google"></i> Đăng nhập bằng Google
+                </button>
+                
+                <div class="text-center">
+                    <span class="text-muted small">Chưa có tài khoản? </span>
+                    <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('registerSection')">Đăng ký ngay</a>
+                </div>
             </div>
-        </div>
 
-        <div id="googleUpdateSection" style="display: none;">
-            <h4 class="text-center fw-bold text-danger mb-2">BƯỚC CUỐI CÙNG</h4>
-            <p class="text-muted text-center small mb-4">Vui lòng cập nhật thông tin để tiếp tục vào phòng máy.</p>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold small">Lớp học / Đơn vị</label>
-                    <input type="text" id="gClass" class="form-control" placeholder="Ví dụ: Lớp 7A">
+            <div id="registerSection" style="display: none;">
+                <h3 class="text-center fw-bold text-dark mb-4">ĐĂNG KÝ HỆ THỐNG</h3>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Họ và tên</label>
+                    <input type="text" id="regName" class="form-control" placeholder="Nguyễn Văn A">
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold small">Chức vụ</label>
-                    <select id="gPosition" class="form-select">
-                        <option value="Thí sinh">Thí sinh</option>
-                        <option value="Giám thị">Giám thị</option>
-                    </select>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Địa chỉ Email</label>
+                    <input type="email" id="regEmail" class="form-control" placeholder="name@company.com">
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Lớp học / Đơn vị</label>
+                        <input type="text" id="regClass" class="form-control" placeholder="Ví dụ: Lớp 7A">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Chức vụ</label>
+                        <select id="regPosition" class="form-select">
+                            <option value="Thí sinh">Thí sinh</option>
+                            <option value="Giám thị">Giám thị</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-7">
+                        <label class="form-label fw-bold">Ngày sinh</label>
+                        <input type="date" id="regBirthday" class="form-control">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Tuổi</label>
+                        <input type="number" id="regAge" class="form-control" placeholder="13">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Mật khẩu bảo mật</label>
+                    <div class="input-group">
+                        <input type="password" id="regPassword" class="form-control" placeholder="••••••••">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('regPassword', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Xác nhận mật khẩu</label>
+                    <div class="input-group">
+                        <input type="password" id="regConfirmPassword" class="form-control" placeholder="••••••••">
+                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('regConfirmPassword', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm mb-3" onclick="handleRegisterSubmit()">XÁC NHẬN ĐĂNG KÝ</button>
+                <div class="text-center mt-2">
+                    <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('loginSection')">Quay lại Đăng nhập</a>
                 </div>
             </div>
-            <div class="row mb-4">
-                <div class="col-md-7">
-                    <label class="form-label fw-bold small">Ngày sinh</label>
-                    <input type="date" id="gBirthday" class="form-control">
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label fw-bold small">Tuổi</label>
-                    <input type="number" id="gAge" class="form-control" placeholder="13">
-                </div>
-            </div>
-            
-            <button type="button" class="btn btn-danger w-100 fw-bold py-2 shadow-sm" onclick="handleGoogleAdditionalData()">HOÀN THÀNH & ĐĂNG NHẬP</button>
-        </div>
 
-        <div id="forgotSection" style="display: none;">
-            <h3 class="text-center fw-bold text-dark mb-4">KHÔI PHỤC</h3>
-            <p class="text-muted text-center small mb-4">Nhập email hệ thống của bạn để nhận liên kết thiết lại mật khẩu.</p>
-            <div class="mb-3">
-                <label class="form-label fw-bold">Địa chỉ Email</label>
-                <input type="email" id="forgotEmail" class="form-control" placeholder="name@company.com">
+            <div id="googleUpdateSection" style="display: none;">
+                <h4 class="text-center fw-bold text-danger mb-2">BƯỚC CUỐI CÙNG</h4>
+                <p class="text-muted text-center small mb-4">Vui lòng cập nhật thông tin để tiếp tục vào phòng máy.</p>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Lớp học / Đơn vị</label>
+                        <input type="text" id="gClass" class="form-control" placeholder="Ví dụ: Lớp 7A">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Chức vụ</label>
+                        <select id="gPosition" class="form-select">
+                            <option value="Thí sinh">Thí sinh</option>
+                            <option value="Giám thị">Giám thị</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-7">
+                        <label class="form-label fw-bold small">Ngày sinh</label>
+                        <input type="date" id="gBirthday" class="form-control">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold small">Tuổi</label>
+                        <input type="number" id="gAge" class="form-control" placeholder="13">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-danger w-100 fw-bold py-2 shadow-sm" onclick="handleGoogleAdditionalData()">HOÀN THÀNH & ĐĂNG NHẬP</button>
             </div>
-            <button type="button" class="btn btn-warning w-100 fw-bold py-2 shadow-sm mb-3" onclick="handleResetPassword()">GỬI LIÊN KẾT</button>
-            <div class="text-center mt-3">
-                <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('loginSection')">Quay lại Đăng nhập</a>
-            </div>
-        </div>
 
+            <div id="forgotSection" style="display: none;">
+                <h3 class="text-center fw-bold text-dark mb-4">KHÔI PHỤC</h3>
+                <p class="text-muted text-center small mb-4">Nhập email hệ thống của bạn để nhận liên kết thiết lại mật khẩu.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Địa chỉ Email</label>
+                    <input type="email" id="forgotEmail" class="form-control" placeholder="name@company.com">
+                </div>
+                <button type="button" class="btn btn-warning w-100 fw-bold py-2 shadow-sm mb-3" onclick="handleResetPassword()">GỬI LIÊN KẾT</button>
+                <div class="text-center mt-3">
+                    <a href="#" class="text-decoration-none small fw-bold" onclick="switchForm('loginSection')">Quay lại Đăng nhập</a>
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
 
@@ -183,16 +397,85 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
 <script src="auth.js"></script>
 
 <script>
+// ==========================================
+// LOGIC ĐIỀU HƯỚNG TAB (Đã sửa lỗi đè nội dung)
+// ==========================================
+
+// 1. HÀM CHUYỂN SANG TAB ẨN (Khi bấm nút "HƯỚNG DẪN THI")
+function switchToHiddenTab(targetTabId) {
+    // Tắt trạng thái sáng (active) của các nút Nav-link gốc để tránh nhầm lẫn giao diện
+    const navLinks = document.querySelectorAll('#mainNavTabs .nav-link');
+    navLinks.forEach(link => link.classList.remove('active'));
+
+    // Ẩn tất cả các tab-pane hiện tại
+    const panes = document.querySelectorAll('.split-left-pane .tab-pane');
+    panes.forEach(pane => pane.classList.remove('show', 'active'));
+
+    // Hiển thị tab ẩn được chỉ định (Hướng dẫn thi)
+    const targetPane = document.getElementById(targetTabId);
+    if (targetPane) {
+        targetPane.classList.add('show', 'active');
+    }
+}
+
+// 2. HÀM QUAY TRỞ LẠI CÁC TAB BÌNH THƯỜNG (Khi bấm nút "Quay lại danh sách kỳ thi")
+function returnToNormalTab(normalTabId, navIndex) {
+    // Ẩn toàn bộ các tab-pane bao gồm cả tab ẩn
+    const panes = document.querySelectorAll('.split-left-pane .tab-pane');
+    panes.forEach(pane => pane.classList.remove('show', 'active'));
+
+    // Hiển thị lại tab thường được chọn
+    const targetPane = document.getElementById(normalTabId);
+    if (targetPane) {
+        targetPane.classList.add('show', 'active');
+    }
+
+    // Khôi phục lại trạng thái sáng (active) của nav-link tương ứng (0 là tab kì thi, 1 là thông báo)
+    const navLinks = document.querySelectorAll('#mainNavTabs .nav-link');
+    if(navLinks[navIndex]) {
+        navLinks[navIndex].classList.add('active');
+    }
+}
+
+// 3. SỬA LỖI ĐÈ: Lắng nghe sự kiện click trên thanh Menu chính để ẩn tab Hướng dẫn thi
+document.addEventListener("DOMContentLoaded", function() {
+    const navLinks = document.querySelectorAll('#mainNavTabs .nav-link');
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            // Khi người dùng bấm vào thanh điều hướng bất kỳ, ta chủ động gỡ bỏ class hiển thị của tab quy chế ẩn
+            const quyChePane = document.getElementById('tab-quyche');
+            if (quyChePane) {
+                quyChePane.classList.remove('show', 'active');
+            }
+        });
+    });
+});
+
+// ==========================================
+// GIỮ NGUYÊN CÁC HÀM QUẢN LÝ FORM & AUTH CỦA BẠN
+// ==========================================
+function switchForm(sectionId) {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('registerSection').style.display = 'none';
+    document.getElementById('googleUpdateSection').style.display = 'none';
+    document.getElementById('forgotSection').style.display = 'none';
+    document.getElementById(sectionId).style.display = 'block';
+}
+
 function handleRegisterSubmit() {
     const password = document.getElementById('regPassword').value;
     const confirmPassword = document.getElementById('regConfirmPassword').value;
 
     if (password !== confirmPassword) {
-        showToast("Xác nhận mật khẩu không trùng khớp!","danger");
+        if (typeof showToast === "function") {
+            showToast("Xác nhận mật khẩu không trùng khớp!","danger");
+        } else {
+            alert("Xác nhận mật khẩu không trùng khớp!");
+        }
         return;
     }
 
@@ -229,6 +512,53 @@ function togglePasswordVisibility(inputId, btn) {
         icon.classList.replace('bi-eye-slash', 'bi-eye');
     }
 }
+
+// Hàm xử lý gửi phản hồi lên Firebase Realtime Database
+function submitFeedback(e) {
+    e.preventDefault();
+    
+    const name = document.getElementById('fbName').value.trim();
+    const contact = document.getElementById('fbContact').value.trim();
+    const content = document.getElementById('fbContent').value.trim();
+    const timestamp = new Date().toLocaleString('vi-VN');
+
+    // Đẩy dữ liệu vào nhánh 'feedbacks' trên Firebase
+    firebase.database().ref('feedbacks').push({
+        name: name,
+        contact: contact,
+        content: content,
+        time: timestamp,
+        status: "Chưa xử lý"
+    }).then(() => {
+        if (typeof showToast === "function") {
+            showToast("Gửi phản hồi thành công! Cảm ơn ý kiến đóng góp của bạn.", "success");
+        } else {
+            alert("Gửi phản hồi thành công!");
+        }
+        document.getElementById('feedbackForm').reset();
+        
+        // Quay về tab kỳ thi sau khi gửi thành công
+        const kiThiLink = document.getElementById('link-kithi');
+        if (kiThiLink) { kiThiLink.click(); }
+    }).catch(error => {
+        if (typeof showToast === "function") {
+            showToast("Lỗi hệ thống: " + error.message, "danger");
+        } else {
+            alert("Gửi thất bại: " + error.message);
+        }
+    });
+}
+
+// Bổ sung xử lý ẩn tab quy chế ẩn nếu click tab phản hồi mới thêm
+document.addEventListener("DOMContentLoaded", function() {
+    const linkPhanHoi = document.getElementById('link-phanhoi');
+    if(linkPhanHoi) {
+        linkPhanHoi.addEventListener('click', function() {
+            const quyChePane = document.getElementById('tab-quyche');
+            if (quyChePane) { quyChePane.classList.remove('show', 'active'); }
+        });
+    }
+});
 </script>
 </body>
 </html>
