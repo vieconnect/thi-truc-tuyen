@@ -468,6 +468,13 @@ function bindBlockInputEvents(blockElement) {
 }
 
 function removeBlock(id) {
+    const totalBlocks = document.querySelectorAll('#questionsWrapper .question-item').length;
+    if (totalBlocks <= 1) {
+        showToast("Đề thi bắt buộc phải giữ lại ít nhất 1 khối nội dung!", "warning");
+        return;
+    }
+    
+    // Lưu ID mục muốn xóa và mở Bootstrap Modal
     activeDeleteBlockId = id;
     const myModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
     myModal.show();
