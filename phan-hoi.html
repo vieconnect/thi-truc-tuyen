@@ -13,30 +13,24 @@
         .feedback-item.active-item { background-color: #cfe2ff !important; border-left: 4px solid #0d6efd; }
         .detail-card { position: sticky; top: 20px; border-radius: 10px; }
     </style>
-        <script language="JavaScript">
+    <script language="JavaScript">
     window.onload = function() {
         document.addEventListener("contextmenu", function(e) {
             e.preventDefault();
         }, false);
         document.addEventListener("keydown", function(e) {
-            //document.onkeydown = function(e) {
-            // "I" key
             if (e.ctrlKey && e.shiftKey && e.keyCode == 73) {
                 disabledEvent(e);
             }
-            // "J" key
             if (e.ctrlKey && e.shiftKey && e.keyCode == 74) {
                 disabledEvent(e);
             }
-            // "S" key + macOS
             if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
                 disabledEvent(e);
             }
-            // "U" key
             if (e.ctrlKey && e.keyCode == 85) {
                 disabledEvent(e);
             }
-            // "F12" key
             if (event.keyCode == 123) {
                 disabledEvent(e);
             }
@@ -52,29 +46,30 @@
             return false;
         }
     };
-</script>
-<style>
-body{
--webkit-touch-callout: none;
--webkit-user-select: none;
--moz-user-select: none;
--ms-user-select: none;
--o-user-select: none;
-user-select: none;
-}
-</style><script type=”text/JavaScript”>
-function killCopy(e){
-return false
-}
-function reEnable(){
-return true
-}
-document.onselectstart=new Function (“return false”)
-if (window.sidebar){
-document.onmousedown=killCopy
-document.onclick=reEnable
-}
-</script>
+    </script>
+    <style>
+    body{
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+    }
+    </style>
+    <script type="text/JavaScript">
+    function killCopy(e){
+    return false
+    }
+    function reEnable(){
+    return true
+    }
+    document.onselectstart=new Function ("return false")
+    if (window.sidebar){
+    document.onmousedown=killCopy
+    document.onclick=reEnable
+    }
+    </script>
 </head>
 <body>
 
@@ -128,14 +123,16 @@ document.onclick=reEnable
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="auth.js"></script> <script>
+<script src="auth.js"></script> 
+
+<script>
 let allFeedbacks = {};
     
 document.addEventListener("DOMContentLoaded", function() {
     loadFeedbackList();
 });
 
-    window.onload = function() {
+window.onload = function() {
     if (typeof checkAdminAccess === 'function') {
         const hasAccess = checkAdminAccess();
         if (!hasAccess) return;
@@ -164,7 +161,11 @@ function loadFeedbackList() {
                 <tr class="feedback-item" id="row-${key}" onclick="viewFeedbackDetail('${key}')">
                     <td>
                         <div class="fw-bold text-dark">${item.name}</div>
-                        <div class="small text-muted" style="font-size:0.8rem;">${item.contact}</div>
+                        <div class="small text-muted" style="font-size:0.8rem; margin-bottom: 4px;">${item.contact}</div>
+                        <!-- THÊM: Badge Thể loại lỗi hiển thị ngay tại dòng danh sách -->
+                        <div class="badge bg-secondary" style="font-size: 0.7rem; font-weight: 500;">
+                            <i class="bi bi-exclamation-triangle me-1"></i>${item.errorType || 'Chưa phân loại'}
+                        </div>
                     </td>
                     <td class="small text-muted">${item.time}</td>
                     <td><span class="badge ${statusClass}">${item.status || 'Chưa xử lý'}</span></td>
@@ -179,7 +180,8 @@ function loadFeedbackList() {
 function viewFeedbackDetail(key) {
     // Đánh dấu dòng đang chọn sáng lên
     document.querySelectorAll('.feedback-item').forEach(el => el.classList.remove('active-item'));
-    document.getElementById(`row-${key}`).classList.add('active-item');
+    const selectedRow = document.getElementById(`row-${key}`);
+    if (selectedRow) selectedRow.classList.add('active-item');
 
     const item = allFeedbacks[key];
     const detailContainer = document.getElementById('detailContainer');
@@ -195,6 +197,14 @@ function viewFeedbackDetail(key) {
                 <div class="text-muted small"><i class="bi bi-telephone-outbound me-1"></i> Liên hệ: <strong>${item.contact}</strong></div>
             </div>
             <span class="text-muted small">${item.time}</span>
+        </div>
+
+        <!-- THÊM: Khu vực hiển thị Thể loại lỗi phía Admin -->
+        <div class="mb-3">
+            <label class="form-label text-secondary small fw-bold text-uppercase">Thể loại lỗi / Yêu cầu:</label>
+            <div>
+                <span class="badge bg-dark px-3 py-2 fs-6"><i class="bi bi-bug-fill text-warning me-1"></i> ${item.errorType || 'Chưa phân loại'}</span>
+            </div>
         </div>
 
         <div class="mb-4">
@@ -222,7 +232,6 @@ function viewFeedbackDetail(key) {
 function updateStatus(key, newStatus) {
     firebase.database().ref(`feedbacks/${key}`).update({ status: newStatus })
     .then(() => {
-        // Cập nhật giao diện lập tức không cần tải lại trang
         allFeedbacks[key].status = newStatus;
     });
 }

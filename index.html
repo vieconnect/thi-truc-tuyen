@@ -120,68 +120,6 @@
             }
         }
     </style>
-    <script language="JavaScript">
-    window.onload = function() {
-        document.addEventListener("contextmenu", function(e) {
-            e.preventDefault();
-        }, false);
-        document.addEventListener("keydown", function(e) {
-            //document.onkeydown = function(e) {
-            // "I" key
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 73) {
-                disabledEvent(e);
-            }
-            // "J" key
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 74) {
-                disabledEvent(e);
-            }
-            // "S" key + macOS
-            if (e.keyCode == 83 && (navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey)) {
-                disabledEvent(e);
-            }
-            // "U" key
-            if (e.ctrlKey && e.keyCode == 85) {
-                disabledEvent(e);
-            }
-            // "F12" key
-            if (event.keyCode == 123) {
-                disabledEvent(e);
-            }
-        }, false);
- 
-        function disabledEvent(e) {
-            if (e.stopPropagation) {
-                e.stopPropagation();
-            } else if (window.event) {
-                window.event.cancelBubble = true;
-            }
-            e.preventDefault();
-            return false;
-        }
-    };
-</script>
-<style>
-body{
--webkit-touch-callout: none;
--webkit-user-select: none;
--moz-user-select: none;
--ms-user-select: none;
--o-user-select: none;
-user-select: none;
-}
-</style><script type=”text/JavaScript”>
-function killCopy(e){
-return false
-}
-function reEnable(){
-return true
-}
-document.onselectstart=new Function (“return false”)
-if (window.sidebar){
-document.onmousedown=killCopy
-document.onclick=reEnable
-}
-</script>
 </head>
 <body>
 
@@ -279,6 +217,17 @@ document.onclick=reEnable
                 <label class="form-label fw-semibold small">Địa chỉ Email / Số điện thoại</label>
                 <input type="text" id="fbContact" class="form-control" placeholder="Để hội đồng liên hệ lại khi cần" required style="border-radius: 6px;">
             </div>
+            <div class="mb-3">
+    <label class="form-label fw-semibold small">Thể loại lỗi / Yêu cầu</label>
+    <select id="fbType" class="form-select" required style="border-radius: 6px;">
+        <option value="" disabled selected>-- Chọn thể loại lỗi gặp phải --</option>
+        <option value="Lỗi đăng nhập / Tài khoản">Lỗi đăng nhập / Tài khoản</option>
+        <option value="Lỗi tải đề thi / Đáp án">Lỗi tải đề thi / Đáp án</option>
+        <option value="Lỗi mất kết nối / Chuyển tab">Lỗi mất kết nối / Chuyển tab</option>
+        <option value="Thắc mắc về quy chế">Thắc mắc về quy chế</option>
+        <option value="Góp ý / Yêu cầu khác">Góp ý / Yêu cầu khác</option>
+    </select>
+</div>
             <div class="mb-3">
                 <label class="form-label fw-semibold small">Nội dung phản hồi</label>
                 <textarea id="fbContent" class="form-control" rows="4" placeholder="Mô tả chi tiết vấn đề hoặc lỗi bạn gặp phải..." required style="border-radius: 6px;"></textarea>
@@ -575,12 +524,11 @@ function togglePasswordVisibility(inputId, btn) {
     }
 }
 
-// Hàm xử lý gửi phản hồi lên Firebase Realtime Database
 function submitFeedback(e) {
     e.preventDefault();
-    
     const name = document.getElementById('fbName').value.trim();
     const contact = document.getElementById('fbContact').value.trim();
+    const errorType = document.getElementById('fbType').value; // Lấy dữ liệu thể loại lỗi mới
     const content = document.getElementById('fbContent').value.trim();
     const timestamp = new Date().toLocaleString('vi-VN');
 
@@ -588,6 +536,7 @@ function submitFeedback(e) {
     firebase.database().ref('feedbacks').push({
         name: name,
         contact: contact,
+        errorType: errorType, // Đồng bộ thêm trường này lên Database
         content: content,
         time: timestamp,
         status: "Chưa xử lý"
@@ -610,17 +559,6 @@ function submitFeedback(e) {
         }
     });
 }
-
-// Bổ sung xử lý ẩn tab quy chế ẩn nếu click tab phản hồi mới thêm
-document.addEventListener("DOMContentLoaded", function() {
-    const linkPhanHoi = document.getElementById('link-phanhoi');
-    if(linkPhanHoi) {
-        linkPhanHoi.addEventListener('click', function() {
-            const quyChePane = document.getElementById('tab-quyche');
-            if (quyChePane) { quyChePane.classList.remove('show', 'active'); }
-        });
-    }
-});
 </script>
 </body>
 </html>
