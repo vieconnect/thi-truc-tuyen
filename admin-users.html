@@ -385,6 +385,13 @@ let localUsersCache = {};
 let isModelsLoaded = false;
 let currentStudentUsername = '';
 
+window.onload = function() {
+    if (typeof checkAdminAccess === 'function') {
+        const hasAccess = checkAdminAccess();
+        if (!hasAccess) return;
+    }
+}
+
 // Khởi chạy đồng bộ dữ liệu người dùng khi tải trang xong
 document.addEventListener('DOMContentLoaded', () => {
     loadRealtimeUsers();
