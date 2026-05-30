@@ -68,10 +68,17 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="auth.js"></script> <script>
 let allFeedbacks = {};
-
+    
 document.addEventListener("DOMContentLoaded", function() {
     loadFeedbackList();
 });
+
+    window.onload = function() {
+    if (typeof checkAdminAccess === 'function') {
+        const hasAccess = checkAdminAccess();
+        if (!hasAccess) return;
+    }
+}
 
 // Hàm đọc danh sách phản hồi theo thời gian thực từ Database
 function loadFeedbackList() {
