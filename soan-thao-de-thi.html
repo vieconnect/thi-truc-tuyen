@@ -58,14 +58,12 @@
         
         /* Drag and drop styling */
         .question-item {
-            cursor: grab;
+            position: relative;
             transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .question-item:active {
-            cursor: grabbing;
+            overflow: hidden; /* Giúp bo góc border khớp với header */
         }
         .question-item.dragging {
-            opacity: 0.5;
+            opacity: 0.4;
             background-color: #f1f3f4 !important;
             border: 2px dashed #a8a8a8 !important;
         }
@@ -73,9 +71,31 @@
             border-left: 5px solid #0d6efd !important;
             box-shadow: 0 0 10px rgba(13, 110, 253, 0.15) !important;
         }
-        .drag-handle {
-            cursor: grab;
-            padding: 5px;
+
+        /* TOÀN BỘ PHẦN HEADER BIẾN THÀNH VÙNG KÉO THẢ */
+        .card-drag-zone {
+            width: 100%;
+            background-color: #f8f9fa; /* Màu nền nhẹ phân biệt phần header */
+            border-bottom: 1px solid #e9ecef;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: grab; /* Tạo hiệu ứng bàn tay nắm kéo */
+            user-select: none;
+        }
+        .card-drag-zone:active {
+            cursor: grabbing;
+        }
+        
+        /* NÚT 6 CHẤM ĐẬM VÀ RÕ HƠN */
+        .drag-dots-icon {
+            color: #495057; /* Màu đậm hơn hẳn */
+            font-size: 1.3rem; /* Phóng to kích thước một chút */
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
         }
 
         @media (max-width: 1200px) {
@@ -178,7 +198,7 @@ let isEditMode = false;
 let currentEditId = "";  
 let isDataChanged = false; 
 let activeDeleteBlockId = null; 
-let activeSelectedBlockId = null; // Lưu trữ block đang được chọn (active) để chèn xuống dưới
+let activeSelectedBlockId = null; 
 
 window.onload = function() {
     if (typeof checkAdminAccess === 'function') {
@@ -210,17 +230,19 @@ window.onload = function() {
         }
     });
 
-    // Khởi tạo cơ chế Drag and Drop vùng chứa
     initDragAndDrop();
 };
 
 function initDragAndDrop() {
     const wrapper = document.getElementById('questionsWrapper');
+    if (!wrapper) return;
     
     wrapper.addEventListener('dragstart', (e) => {
         const item = e.target.closest('.question-item');
-        if (item) {
+        if (item && item.getAttribute('draggable') === 'true') {
             item.classList.add('dragging');
+        } else {
+            e.preventDefault();
         }
     });
 
@@ -228,6 +250,7 @@ function initDragAndDrop() {
         const item = e.target.closest('.question-item');
         if (item) {
             item.classList.remove('dragging');
+            item.setAttribute('draggable', 'false'); 
             isDataChanged = true;
         }
     });
@@ -335,6 +358,7 @@ function changeQuestionType(blockId) {
     optionsContainer.innerHTML = generateOptionsMarkup(newType);
 
     bindBlockInputEvents(block);
+    bindHandleDragTrigger(block);
 }
 
 function addQuestionBlock(type, qData = null, insertAfterId = null) {
@@ -348,53 +372,55 @@ function addQuestionBlock(type, qData = null, insertAfterId = null) {
         isDataChanged = true;
     }
 
-    const isDoanVan = (type === 'doan_van');
-    const isPhanMuc = (type === 'phan_muc');
-    
+    const cleanType = String(type).trim();
+
     let selectDropdownHtml = '';
-    if (!isDoanVan && !isPhanMuc) {
+    if (cleanType === 'phan_muc') {
+        selectDropdownHtml = `<span class="badge bg-dark text-white fw-bold"><i class="bi bi-segmented-nav"></i> PHẦN ĐỀ THI (SECTION)</span>`;
+    } else if (cleanType === 'doan_van') {
+        selectDropdownHtml = `<span class="badge bg-info text-dark fw-bold"><i class="bi bi-file-text-fill"></i> ĐOẠN VĂN GHI CHÚ BTC</span>`;
+    } else {
         selectDropdownHtml = `
             <select class="form-select form-select-sm type-select style-select w-auto fw-bold text-secondary" onchange="changeQuestionType(${currentId})">
-                <option value="trac_nghiem" ${type === 'trac_nghiem' ? 'selected' : ''}>Multiple Choice (Trắc nghiệm)</option>
-                <option value="tu_luan" ${type === 'tu_luan' ? 'selected' : ''}>Short Answer (Tự luận / Điền từ)</option>
+                <option value="trac_nghiem" ${cleanType === 'trac_nghiem' ? 'selected' : ''}>Multiple Choice (Trắc nghiệm)</option>
+                <option value="tu_luan" ${cleanType === 'tu_luan' ? 'selected' : ''}>Short Answer (Tự luận / Điền từ)</option>
             </select>
         `;
-    } else if (isPhanMuc) {
-        selectDropdownHtml = `<span class="badge bg-dark text-white fw-bold"><i class="bi bi-segmented-nav"></i> PHẦN ĐỀ THI (SECTION)</span>`;
-    } else {
-        selectDropdownHtml = `<span class="badge bg-info text-dark fw-bold"><i class="bi bi-file-text-fill"></i> ĐOẠN VĂN GHI CHÚ BTC</span>`;
     }
 
     const tempDiv = document.createElement('div');
+    // .card-drag-zone chính là toàn bộ thanh header trắng phía trên bao bọc nút sáu chấm đậm màu
     tempDiv.innerHTML = `
-        <div class="card p-3 mb-3 border question-item shadow-sm bg-white" draggable="true" data-type="${type}" id="block_${currentId}" onclick="selectBlock(${currentId}); event.stopPropagation();">
-            <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+        <div class="card mb-3 border question-item shadow-sm bg-white" draggable="false" data-type="${cleanType}" id="block_${currentId}" onclick="selectBlock(${currentId}); event.stopPropagation();">
+            
+            <div class="card-drag-zone">
                 <div class="d-flex align-items-center gap-2 flex-grow-1">
-                    <span class="drag-handle text-muted"><i class="bi bi-grid-3x2-gap-vertical fs-5"></i></span>
+                    <span class="drag-dots-icon me-1"><i class="bi bi-grid-3x2-gap-vertical"></i></span>
                     ${selectDropdownHtml}
                 </div>
                 <button class="btn btn-sm btn-link text-danger p-0 border-0 text-decoration-none" onclick="removeBlock(${currentId}); event.stopPropagation();">
                     <i class="bi bi-trash3-fill"></i> Xóa mục
                 </button>
             </div>
-            
-            <div class="mb-3 title-input-container">
-                ${(isDoanVan) ? 
-                    `<textarea class="form-control form-control-sm fw-medium q-title-input" rows="3" placeholder="Nhập văn bản ghi chú / hướng dẫn thi của BTC tại đây...">${qData?.title || ''}</textarea>` :
-                  (isPhanMuc) ?
-                    `<input type="text" class="form-control form-control-sm fw-bold text-dark q-title-input" style="font-size:1.1rem; background-color:#f8f9fa;" value="${qData?.title || ''}" placeholder="Nhập tên Tiêu đề của Phần này (Ví dụ: Phần I: Kiến thức ngôn ngữ)...">` :
-                    `<input type="text" class="form-control form-control-sm fw-medium q-title-input" value="${qData?.title || ''}" placeholder="Nhập nội dung câu hỏi (Ví dụ: Câu 1. Nội dung câu hỏi...)">`
-                }
-            </div>
-            
-            <div class="options-container">
-                ${generateOptionsMarkup(type, qData)}
+
+            <div class="p-3">
+                <div class="mb-3 title-input-container">
+                    ${(cleanType === 'doan_van') ? 
+                        `<textarea class="form-control form-control-sm fw-medium q-title-input" rows="3" placeholder="Nhập văn bản ghi chú / hướng dẫn thi của BTC tại đây...">${qData?.title || ''}</textarea>` :
+                      (cleanType === 'phan_muc') ?
+                        `<input type="text" class="form-control form-control-sm fw-bold text-dark q-title-input" style="font-size:1.1rem; background-color:#f8f9fa;" value="${qData?.title || ''}" placeholder="Nhập tên Tiêu đề của Phần này (Ví dụ: Phần I: Kiến thức ngôn ngữ)...">` :
+                        `<input type="text" class="form-control form-control-sm fw-medium q-title-input" value="${qData?.title || ''}" placeholder="Nhập nội dung câu hỏi (Ví dụ: Câu 1. Nội dung câu hỏi...)">`
+                    }
+                </div>
+                
+                <div class="options-container">
+                    ${generateOptionsMarkup(cleanType, qData)}
+                </div>
             </div>
         </div>`;
 
     const newBlockNode = tempDiv.firstElementChild;
 
-    // Tiến hành chèn thông minh: Chèn ngay dưới khối đang chọn hoặc cuối danh sách
     if (insertAfterId) {
         const referenceNode = document.getElementById(`block_${insertAfterId}`);
         if (referenceNode && referenceNode.nextSibling) {
@@ -409,6 +435,28 @@ function addQuestionBlock(type, qData = null, insertAfterId = null) {
     newBlockNode.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     selectBlock(currentId);
     bindBlockInputEvents(newBlockNode);
+    bindHandleDragTrigger(newBlockNode);
+}
+
+function bindHandleDragTrigger(blockElement) {
+    const dragZone = blockElement.querySelector('.card-drag-zone');
+    if (!dragZone) return;
+
+    // Nhấn xuống bất cứ đâu trong vùng header mới kích hoạt quyền kéo card
+    dragZone.addEventListener('mousedown', () => {
+        blockElement.setAttribute('draggable', 'true');
+    });
+
+    // Thả chuột ra khóa lại ngay lập tức để bảo vệ các vùng input văn bản phía dưới
+    dragZone.addEventListener('mouseup', () => {
+        blockElement.setAttribute('draggable', 'false');
+    });
+
+    blockElement.addEventListener('mouseleave', () => {
+        if (!blockElement.classList.contains('dragging')) {
+            blockElement.setAttribute('draggable', 'false');
+        }
+    });
 }
 
 function bindBlockInputEvents(blockElement) {
@@ -529,7 +577,6 @@ async function publishExam() {
             if (!title) { showToast(`Nội dung khối văn bản ${index + 1} trống!`, "warning"); isValid = false; return; }
             payload.correctAnswer = "";
         } else if (type === 'phan_muc') {
-            // Đối với phần mục: Tiêu đề và Mô tả có thể cùng bỏ trống (như Google Form)
             const desc = block.querySelector('.section-desc-input').value.trim();
             payload.description = desc;
         }
